@@ -13,6 +13,7 @@ import datetime
 import logging
 from multiprocessing import Pool
 from concurrent.futures import ThreadPoolExecutor
+from sites import *
 
 recentSubject = ""
 token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
@@ -49,16 +50,17 @@ def job():
     sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
 
     BASE_URL = "https://moneys.mt.co.kr/news/mwList.php?code=w0000&code2=w0100"
-    # BASE_URL = ["https://www.edaily.co.kr/news/realtimenews?tab=0"]
+    BASE_URL = "https://www.etoday.co.kr/news/flashnews/news/flashnews/flash_list" #, "ul > li > .flash_tab_txt t_reduce", "https://www.etoday.co.kr/news/flashnews/flash_view?idxno="
 
     try:
         with requests.Session() as s:
             res = s.get(BASE_URL, headers={'User-Agent': 'Mozilla/5.0'})
-            # print(res.text)
+            print(res.text)
 
             if res.status_code == requests.codes.ok:
                 soup = BeautifulSoup(res.text, 'html.parser')
-                articles = soup.select('#content > div > ul > .bundle')
+                # articles = soup.select('#content > div > ul > .bundle')
+                articles = soup.select("ul > li > .flash_tab_txt t_reduce")
 
                 for article in articles:
                     if article == recentSubject:
