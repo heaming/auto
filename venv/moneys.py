@@ -13,78 +13,80 @@ import datetime
 import logging
 from multiprocessing import Pool
 from concurrent.futures import ThreadPoolExecutor
-
 recentSubject = ""
 token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
-# bot = telegram.Bot(token=token)
+bot = telegram.Bot(token=token)
 chat_id = '-1001524509726'  # 채널
 newsSet = set()
 
-async def main(text):
-    if(len(newsSet) > 1000):
-        newsSet.clear()
-    print(text)
-    print(len(newsSet))
-    print("===================")
-    # token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
-    # bot = telegram.Bot(token=token)
-    # aHTML 문서에서 매칭되wait bot.send_message(chat_id, text)
+def moneysRun():
+    print("moneysRun()")
 
-def isKeyword(title):
-    if len(list(filter(lambda f: f in title, newsFilter))) > 0:
-        return True
-    return False
+    async def main(text):
+        if(len(newsSet) > 1000):
+            newsSet.clear()
+        print(text)
+        print(len(newsSet))
+        print("===================")
+        token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
+        bot = telegram.Bot(token=token)
+        await bot.send_message(chat_id, text)
 
-def isDup(href):
-    if href in newsSet:
-        return True
-    return False
-def job():
-    global recentSubject
-    now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
-    # if now.hour >= 24 or now.hour <= 6:
-    #     return
+    def isKeyword(title):
+        if len(list(filter(lambda f: f in title, newsFilter))) > 0:
+            return True
+        return False
 
-    sys.stderr = io.TextIOWrapper(sys.stderr.detach(), encoding='utf-8')
-    sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
+    def isDup(href):
+        if href in newsSet:
+            return True
+        return False
+    def job():
+        global recentSubject
+        now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
+        # if now.hour >= 24 or now.hour <= 6:
+        #     return
 
-    BASE_URL = "https://moneys.mt.co.kr/news/mwList.php?code=w0000&code2=w0100"
+        sys.stderr = io.TextIOWrapper(sys.stderr.detach(), encoding='utf-8')
+        sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
 
-    try:
-        with requests.Session() as s:
-            res = s.get(BASE_URL, headers={'User-Agent': 'Mozilla/5.0'})
+        BASE_URL = "https://moneys.mt.co.kr/news/mwList.php?code=w0000&code2=w0100"
 
-            if res.status_code == requests.codes.ok:
-                soup = BeautifulSoup(res.text, 'html.parser')
-                articles = soup.select('#content > div > ul > .bundle')
+        try:
+            with requests.Session() as s:
+                res = s.get(BASE_URL, headers={'User-Agent': 'Mozilla/5.0'})
 
-                for article in articles:
-                    if article == recentSubject:
-                        break
-                    else:
-                        recentSubject = article
+                if res.status_code == requests.codes.ok:
+                    soup = BeautifulSoup(res.text, 'html.parser')
+                    articles = soup.select('#content > div > ul > .bundle')
 
-                    title = list(article.stripped_strings)[0]
-                    href = article.select_one('a')['href']
+                    for article in articles:
+                        if article == recentSubject:
+                            break
+                        else:
+                            recentSubject = article
 
-                    if(isKeyword(title)) and (not isDup(href)):
-                        newsSet.add(href)
-                        curTxt = title+"\n"+href+"\n"+list(article.stripped_strings)[1]
-                        asyncio.run(main(curTxt))
+                        title = list(article.stripped_strings)[0]
+                        href = article.select_one('a')['href']
+
+                        if(isKeyword(title)) and (not isDup(href)):
+                            newsSet.add(href)
+                            curTxt = title+"\n"+href+"\n"+list(article.stripped_strings)[1]
+                            asyncio.run(main(curTxt))
 
 
-    except requests.exceptions.ConnectionError as e:
-        print("ConnectionError occurred:", str(e))
-        print("Retrying in 3 seconds...")
-        time.sleep(3)
-        job()
+        except requests.exceptions.ConnectionError as e:
+            print("ConnectionError occurred:", str(e))
+            print("Retrying in 3 seconds...")
+            time.sleep(3)
+            job()
 
-schedule.every(1).seconds.do(job)
-asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    schedule.every(1).seconds.do(job)
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-while True:
-    schedule.run_pending()
-    time.sleep(1)
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
 
 # 1.파이썬 언어
 # 2.스케줄링 (구현되어있음) - vscode로 기동해놓으면 앱종료하지 않는이상 계속 뉴스 긁어와야함
@@ -118,3 +120,4 @@ while True:
 # 텔레그램도 저 전송 api 호출하는거 한번에 여러번 못하도록 막아놨을거에요
 
 
+moneysRun()

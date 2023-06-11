@@ -20,8 +20,8 @@ bot = telegram.Bot(token=token)
 chat_id = '-1001524509726'  # 채널
 newsSet = set()
 
-def etodayRun():
-    print("etodayRun()")
+def thelecRun():
+    print("thelecRun()")
     async def main(text):
         if(len(newsSet) > 1000):
             newsSet.clear()
@@ -50,9 +50,11 @@ def etodayRun():
         # if now.hour >= 24 or now.hour <= 6:
         #     return
 
+
+
         sys.stderr = io.TextIOWrapper(sys.stderr.detach(), encoding='utf-8')
         sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
-        BASE_URL = "https://www.etoday.co.kr/news/flashnews/flash_list"
+        BASE_URL = "https://www.thelec.kr/news/articleList.html?view_type=sm"
 
         try:
             with requests.Session() as s:
@@ -65,9 +67,7 @@ def etodayRun():
                     # frameSoup = soup.select_one('iframe', '#flash_list')
                     # iframeUrl = BASE_URL+frame['src']
                     # resIframe = requests.get(iframeUrl.text, 'html.parser')
-                    articles = soup.select(".flash_tab_txt")
-                    # print(articles)
-                    # articles = resIframe.select("ul > li > .flash_tab_txt t_reduce")
+                    articles = soup.select(".list-block")
 
                     for article in articles:
                         if article == recentSubject:
@@ -76,7 +76,7 @@ def etodayRun():
                             recentSubject = article
 
                         title = list(article.stripped_strings)[0]
-                        href = "https://www.etoday.co.kr/news/view/"+re.sub(r'[^0-9]', '', article.select_one('a')['href'])
+                        href = "https://www.thelec.kr"+article.select_one('a')['href']
                         # print(title+" "+href)
 
                         if(isKeyword(title)) and (not isDup(href)):
@@ -98,4 +98,4 @@ def etodayRun():
         schedule.run_pending()
         time.sleep(1)
 
-etodayRun()
+thelecRun()
