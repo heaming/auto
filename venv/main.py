@@ -11,30 +11,37 @@ from filterList import *
 import pytz
 import datetime
 import logging
+from multiprocessing import Pool
 from multiprocessing import Process
 from concurrent.futures import ThreadPoolExecutor
 from moneys import moneysRun
 from etoday import etodayRun
 from thelec import thelecRun
 from theguru import theguruRun
+from asiae import asiaeRun
 
 recentSubject = ""
-token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
+# token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
 # bot = telegram.Bot(token=token)
-chat_id = '-1001524509726'  # 채널
+# chat_id = '-1001524509726'  # 채널
+
+global startTime
+
+def runMethod(method):
+    startTime = time.time()
+    method()
+    print("------ %s ------" %(time.time() - startTime))
 
 if __name__ == "__main__":
-    pMoneyS = Process(target=moneysRun)
-    pEtoday = Process(target=etodayRun)
-    pThelec = Process(target=thelecRun)
-    pTheguru = Process(target=theguruRun)
+    print("[start] main.py")
+    methodList = [etodayRun, thelecRun, theguruRun, asiaeRun, moneysRun]
+
+    pool = Pool(processes=5)
+    pool.map(runMethod, methodList)
 
 
-    while True:
-        pMoneyS.start(); pMoneyS.join()
-        pEtoday.start(); pEtoday.join()
-        pThelec.start(); pThelec.join()
-        pTheguru.start(); pTheguru.join()
+
+
 
 
 

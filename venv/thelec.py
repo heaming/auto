@@ -16,21 +16,23 @@ from concurrent.futures import ThreadPoolExecutor
 import re
 recentSubject = ""
 token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
-bot = telegram.Bot(token=token)
+# bot = telegram.Bot(token=token)
 chat_id = '-1001524509726'  # 채널
 newsSet = set()
 
 def thelecRun():
+    global startTime
+    startTime = time.time()
     print("thelecRun()")
     async def main(text):
         if(len(newsSet) > 1000):
             newsSet.clear()
+        print("thelecRun %s" %len(newsSet))
         print(text)
-        print(len(newsSet))
         print("===================")
-        token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
-        bot = telegram.Bot(token=token)
-        await bot.send_message(chat_id, text)
+        # token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
+        # bot = telegram.Bot(token=token)
+        # await bot.send_message(chat_id, text)
 
     def isKeyword(title):
         # print(title)
@@ -57,6 +59,7 @@ def thelecRun():
         BASE_URL = "https://www.thelec.kr/news/articleList.html?view_type=sm"
 
         try:
+            print("------[thelec] %s ------" %(time.time() - startTime))
             with requests.Session() as s:
                 res = s.get(BASE_URL, headers={'User-Agent': 'Mozilla/5.0'})
 
@@ -98,4 +101,4 @@ def thelecRun():
         schedule.run_pending()
         time.sleep(1)
 
-thelecRun()
+# thelecRun()

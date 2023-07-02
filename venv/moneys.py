@@ -13,24 +13,26 @@ import datetime
 import logging
 from multiprocessing import Pool
 from concurrent.futures import ThreadPoolExecutor
+
 recentSubject = ""
 token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
-bot = telegram.Bot(token=token)
+# bot = telegram.Bot(token=token)
 chat_id = '-1001524509726'  # 채널
 newsSet = set()
 
 def moneysRun():
+    global startTime
+    startTime = time.time()
     print("moneysRun()")
-
     async def main(text):
         if(len(newsSet) > 1000):
             newsSet.clear()
+        print("moneysRun :: %s" %len(newsSet))
         print(text)
-        print(len(newsSet))
         print("===================")
-        token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
-        bot = telegram.Bot(token=token)
-        await bot.send_message(chat_id, text)
+        # token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
+        # bot = telegram.Bot(token=token)
+        # await bot.send_message(chat_id, text)
 
     def isKeyword(title):
         if len(list(filter(lambda f: f in title, newsFilter))) > 0:
@@ -53,6 +55,7 @@ def moneysRun():
         BASE_URL = "https://moneys.mt.co.kr/news/mwList.php?code=w0000&code2=w0100"
 
         try:
+            print("------[moneys] %s ------" %(time.time() - startTime))
             with requests.Session() as s:
                 res = s.get(BASE_URL, headers={'User-Agent': 'Mozilla/5.0'})
 
@@ -120,4 +123,4 @@ def moneysRun():
 # 텔레그램도 저 전송 api 호출하는거 한번에 여러번 못하도록 막아놨을거에요
 
 
-moneysRun()
+# moneysRun()
