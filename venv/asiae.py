@@ -18,15 +18,18 @@ import re
 from selenium.common.exceptions import *
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
 
 # TODO https://chromedriver.chromium.org/downloads 크롬드라이버 버전에 맞게 다운받기!
 
-recentSubject = ""
-token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
-# bot = telegram.Bot(token=token)
-chat_id = '-1001524509726'  # 채널
-newsSet = set()
 BASE_URL = "https://www.asiae.co.kr/realtime/"
+recentSubject = ""
+# token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
+token = "6370344836:AAFXDbpiuR1vbbkwDdJFYBdFds4q3C7CXF0" #hm
+# chat_id = '-1001524509726'  # 채널
+chat_id = '5915719482' #hm
+
+newsSet = set()
 
 def asiaeRun():
 
@@ -40,9 +43,9 @@ def asiaeRun():
         print("asiaeRun :: %s" % len(newsSet))
         print(text)
         print("===================")
-        # token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
-        # bot = telegram.Bot(token=token)
-        # await bot.send_message(chat_id, text)
+
+        bot = telegram.Bot(token=token)
+        await bot.send_message(chat_id, text)
 
     def isKeyword(title):
         # print(title)
@@ -66,16 +69,20 @@ def asiaeRun():
         sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
 
         options = Options()
-        options.add_argument('--headless')
+        # options.add_argument('--headless')
         options.add_argument("disable-gpu")
         options.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36")
-        options.add_argument("lang=ko_KR")# 한국어!
+        options.add_argument("lang=ko_KR") # 한국어!
 
-        driver = webdriver.Chrome(options=options)  # TODO .exe 파일 > path ::  Windows에 넣기
-        driver.implicitly_wait(1)
+        # driver = webdriver.Chrome(ChromeDriverManager().install())
+
+        global driver
 
         try:
             print("------[asiae] %s ------" %(time.time() - startTime))
+
+            driver = webdriver.Chrome(executable_path="C:\\Windows\\chromedriver.exe" ,options=options)               # TODO .exe 파일 > path ::  Windows에 넣기
+            driver.implicitly_wait(1)
             driver.get(BASE_URL)
             res = driver.page_source
             driver.close()

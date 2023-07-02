@@ -14,25 +14,29 @@ import logging
 from multiprocessing import Pool
 from concurrent.futures import ThreadPoolExecutor
 import re
+
+BASE_URL = "https://www.etoday.co.kr/news/flashnews/flash_list"
 recentSubject = ""
-token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
-# bot = telegram.Bot(token=token)
-chat_id = '-1001524509726'  # 채널
+# token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
+token = "6370344836:AAFXDbpiuR1vbbkwDdJFYBdFds4q3C7CXF0" #hm
+# chat_id = '-1001524509726'  # 채널
+chat_id = '5915719482' #hm
 newsSet = set()
 
 def etodayRun():
     global startTime
     startTime = time.time()
     print("etodayRun()")
+
     async def main(text):
         if(len(newsSet) > 1000):
             newsSet.clear()
         print("etodayRun :: %s" % len(newsSet))
         print(text)
         print("===================")
-        # token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
-        # bot = telegram.Bot(token=token)
-        # await bot.send_message(chat_id, text)
+
+        bot = telegram.Bot(token=token)
+        await bot.send_message(chat_id, text)
 
     def isKeyword(title):
         # print(title)
@@ -54,7 +58,7 @@ def etodayRun():
 
         sys.stderr = io.TextIOWrapper(sys.stderr.detach(), encoding='utf-8')
         sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
-        BASE_URL = "https://www.etoday.co.kr/news/flashnews/flash_list"
+
 
         try:
             print("------[etoday] %s ------" %(time.time() - startTime))
@@ -86,7 +90,6 @@ def etodayRun():
                             newsSet.add(href)
                             curTxt = title+"\n"+href
                             asyncio.run(main(curTxt))
-
 
         except requests.exceptions.ConnectionError as e:
             print("ConnectionError occurred:", str(e))

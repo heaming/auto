@@ -22,9 +22,10 @@ from asiae import asiaeRun
 
 recentSubject = ""
 # token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
-# bot = telegram.Bot(token=token)
+token = "6370344836:AAFXDbpiuR1vbbkwDdJFYBdFds4q3C7CXF0" # 혜미
+bot = telegram.Bot(token=token)
 # chat_id = '-1001524509726'  # 채널
-
+chat_id = '5915719482' #혜미
 global startTime
 
 def runMethod(method):
@@ -34,7 +35,7 @@ def runMethod(method):
 
 if __name__ == "__main__":
     print("[start] main.py")
-    methodList = [etodayRun, thelecRun, theguruRun, asiaeRun, moneysRun]
+    methodList = [etodayRun, thelecRun, theguruRun, moneysRun, asiaeRun]
 
     pool = Pool(processes=5)
     pool.map(runMethod, methodList)
