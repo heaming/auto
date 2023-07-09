@@ -7,7 +7,7 @@ import sys
 import io
 from bs4 import BeautifulSoup
 import requests
-from filterList import *
+from resources import filterList
 import pytz
 import datetime
 import logging
@@ -15,6 +15,7 @@ from multiprocessing import Pool
 from concurrent.futures import ThreadPoolExecutor
 import re
 
+newsFilter = filterList.newsFilter
 BASE_URL = "https://www.etoday.co.kr/news/flashnews/flash_list"
 recentSubject = ""
 # token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"

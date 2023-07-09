@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import requests
 import telegram
 import asyncio
@@ -7,7 +8,7 @@ import sys
 import io
 from bs4 import BeautifulSoup
 import requests
-from filterList import *
+from resources import filterList
 import pytz
 import datetime
 import logging
@@ -15,7 +16,8 @@ from multiprocessing import Pool
 from concurrent.futures import ThreadPoolExecutor
 import re
 
-BASE_URL = "https://www.thelec.kr/news/articleList.html?view_type=sm"
+newsFilter = filterList.newsFilter
+BASE_URL = "https://newsis.com/realnews/"
 recentSubject = ""
 # token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
 token = "6370344836:AAFXDbpiuR1vbbkwDdJFYBdFds4q3C7CXF0"
@@ -24,19 +26,19 @@ token = "6370344836:AAFXDbpiuR1vbbkwDdJFYBdFds4q3C7CXF0"
 chat_id = '5915719482'
 newsSet = set()
 
-def thelecRun():
+def newsisRun():
     global startTime
     startTime = time.time()
-    print("thelecRun()")
+    print("newsisRun()")
     async def main(text):
         if(len(newsSet) > 1000):
             newsSet.clear()
-        print("thelecRun %s" %len(newsSet))
+        print("newsisRun %s" %len(newsSet))
         print(text)
         print("===================")
         # token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
-        bot = telegram.Bot(token=token)
-        await bot.send_message(chat_id, text)
+        # bot = telegram.Bot(token=token)
+        # await bot.send_message(chat_id, text)
 
     def isKeyword(title):
         # print(title)
@@ -60,18 +62,17 @@ def thelecRun():
         sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
 
         try:
-            print("------[thelec] %s ------" %(time.time() - startTime))
+            print("------[newsis] %s ------" %(time.time() - startTime))
             with requests.Session() as s:
                 res = s.get(BASE_URL, headers={'User-Agent': 'Mozilla/5.0'})
+                # res.raise_for_status()
+                # res.encoding = None #ISO-8859-1 처리
 
                 if res.status_code == requests.codes.ok:
+                    # print(res.encoding)
                     soup = BeautifulSoup(res.text, 'html.parser')
 
-                    # print(soup)
-                    # frameSoup = soup.select_one('iframe', '#flash_list')
-                    # iframeUrl = BASE_URL+frame['src']
-                    # resIframe = requests.get(iframeUrl.text, 'html.parser')
-                    articles = soup.select(".list-block")
+                    articles = soup.select(".article > .articleList2 > li > div > .txtCont")
 
                     for article in articles:
                         if article == recentSubject:
@@ -80,7 +81,9 @@ def thelecRun():
                             recentSubject = article
 
                         title = list(article.stripped_strings)[0]
-                        href = "https://www.thelec.kr"+article.select_one('a')['href']
+                        print(title)
+                        print(article.select_one('a')['href'])
+                        href = "https://newsis.com/"+article.select_one('a')['href']
                         # print(title+" "+href)
 
                         if(isKeyword(title)) and (not isDup(href)):
@@ -102,4 +105,4 @@ def thelecRun():
         schedule.run_pending()
         time.sleep(1)
 
-# thelecRun()
+# newsisRun()

@@ -7,42 +7,46 @@ import sys
 import io
 from bs4 import BeautifulSoup
 import requests
-from filterList import *
+from resources import filterList
 import pytz
 import datetime
 import logging
 from multiprocessing import Pool
 from concurrent.futures import ThreadPoolExecutor
+import re
 
-BASE_URL = "https://moneys.mt.co.kr/news/mwList.php?code=w0000&code2=w0100"
+newsFilter = filterList.newsFilter
+BASE_URL = "https://www.theguru.co.kr/news/article_list_all.html"
 recentSubject = ""
 # token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
 token = "6370344836:AAFXDbpiuR1vbbkwDdJFYBdFds4q3C7CXF0"
+bot = telegram.Bot(token=token)
 # chat_id = '-1001524509726'  # 채널
 chat_id = '5915719482'
 newsSet = set()
 
-def moneysRun():
+def theguruRun():
     global startTime
     startTime = time.time()
-    print("moneysRun()")
-
+    print("theguruRun()")
     async def main(text):
         if(len(newsSet) > 1000):
             newsSet.clear()
-        print("moneysRun :: %s" %len(newsSet))
+        print("theguruRun %s" %len(newsSet))
         print(text)
         print("===================")
-
+        # token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
         bot = telegram.Bot(token=token)
         await bot.send_message(chat_id, text)
 
     def isKeyword(title):
+        # print(title)
         if len(list(filter(lambda f: f in title, newsFilter))) > 0:
             return True
         return False
 
     def isDup(href):
+        # print(href)
         if href in newsSet:
             return True
         return False
@@ -57,13 +61,18 @@ def moneysRun():
         sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
 
         try:
-            print("------[moneys] %s ------" %(time.time() - startTime))
+            print("------[theguru] %s ------" %(time.time() - startTime))
             with requests.Session() as s:
                 res = s.get(BASE_URL, headers={'User-Agent': 'Mozilla/5.0'})
 
                 if res.status_code == requests.codes.ok:
                     soup = BeautifulSoup(res.text, 'html.parser')
-                    articles = soup.select('#content > div > ul > .bundle')
+
+                    # print(soup)
+                    # frameSoup = soup.select_one('iframe', '#flash_list')
+                    # iframeUrl = BASE_URL+frame['src']
+                    # resIframe = requests.get(iframeUrl.text, 'html.parser')
+                    articles = soup.select(".art_list_all > li")
 
                     for article in articles:
                         if article == recentSubject:
@@ -72,11 +81,12 @@ def moneysRun():
                             recentSubject = article
 
                         title = list(article.stripped_strings)[0]
-                        href = article.select_one('a')['href']
+                        href = "https://www.theguru.co.kr"+article.select_one('a')['href']
+                        # print(title+" "+href)
 
                         if(isKeyword(title)) and (not isDup(href)):
                             newsSet.add(href)
-                            curTxt = title+"\n"+href+"\n"+list(article.stripped_strings)[1]
+                            curTxt = title+"\n"+href
                             asyncio.run(main(curTxt))
 
 
@@ -93,4 +103,4 @@ def moneysRun():
         schedule.run_pending()
         time.sleep(1)
 
-# moneysRun()
+# theguruRun()

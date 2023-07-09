@@ -1,24 +1,14 @@
-import requests
 import telegram
-import asyncio
-import schedule
 import time
-import sys
-import io
-from bs4 import BeautifulSoup
-import requests
-from filterList import *
-import pytz
-import datetime
-import logging
 from multiprocessing import Pool
-from multiprocessing import Process
-from concurrent.futures import ThreadPoolExecutor
-from moneys import moneysRun
-from etoday import etodayRun
-from thelec import thelecRun
-from theguru import theguruRun
-from asiae import asiaeRun
+from sites.moneys import moneysRun
+from sites.etoday import etodayRun
+from sites.thelec import thelecRun
+from sites.theguru import theguruRun
+from sites.asiae import asiaeRun
+from sites.sedaily import sedailyRun
+from sites.news1 import news1Run
+from sites.newsis import newsisRun
 
 recentSubject = ""
 # token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
@@ -35,13 +25,24 @@ def runMethod(method):
 
 if __name__ == "__main__":
     print("[start] main.py")
-    methodList = [etodayRun, thelecRun, theguruRun, moneysRun, asiaeRun]
+    methodList = [etodayRun, thelecRun, theguruRun, moneysRun, asiaeRun, sedailyRun, news1Run, newsisRun]
 
-    pool = Pool(processes=5)
+    pool = Pool(processes=8)
     pool.map(runMethod, methodList)
 
 
+# 서울경제    https://www.sedaily.com/
+# 뉴스1    https://www.news1.kr/
+# 뉴시스    https://newsis.com/
 
+# 연합뉴스    https://www.yna.co.kr/
+# 연합뉴스TV    https://www.yonhapnewstv.co.kr/
+# 파이낸셜뉴스    www.fnnews.com
+# 한국경제    www.hankyung.com
+# 헤럴드경제    http://biz.heraldcorp.com/
+# 노컷뉴스    www.nocutnews.co.kr
+# 더벨    http://www.thebell.co.kr/free/index.asp
+# 조선비즈    https://biz.chosun.com/
 
 
 
@@ -78,5 +79,8 @@ if __name__ == "__main__":
 # 텔레그램도 한번에 보내는게 안될거에요
 # 카톡도 피시로 한번에 메세지 여러개 보내는거 방지해놨자나요
 # 텔레그램도 저 전송 api 호출하는거 한번에 여러번 못하도록 막아놨을거에요
+
+
+
 
 

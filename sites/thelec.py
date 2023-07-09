@@ -7,7 +7,7 @@ import sys
 import io
 from bs4 import BeautifulSoup
 import requests
-from filterList import *
+from resources import filterList
 import pytz
 import datetime
 import logging
@@ -15,23 +15,24 @@ from multiprocessing import Pool
 from concurrent.futures import ThreadPoolExecutor
 import re
 
-BASE_URL = "https://www.theguru.co.kr/news/article_list_all.html"
+newsFilter = filterList.newsFilter
+BASE_URL = "https://www.thelec.kr/news/articleList.html?view_type=sm"
 recentSubject = ""
 # token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
 token = "6370344836:AAFXDbpiuR1vbbkwDdJFYBdFds4q3C7CXF0"
-bot = telegram.Bot(token=token)
+# bot = telegram.Bot(token=token)
 # chat_id = '-1001524509726'  # 채널
 chat_id = '5915719482'
 newsSet = set()
 
-def theguruRun():
+def thelecRun():
     global startTime
     startTime = time.time()
-    print("theguruRun()")
+    print("thelecRun()")
     async def main(text):
         if(len(newsSet) > 1000):
             newsSet.clear()
-        print("theguruRun %s" %len(newsSet))
+        print("thelecRun %s" %len(newsSet))
         print(text)
         print("===================")
         # token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
@@ -60,7 +61,7 @@ def theguruRun():
         sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
 
         try:
-            print("------[theguru] %s ------" %(time.time() - startTime))
+            print("------[thelec] %s ------" %(time.time() - startTime))
             with requests.Session() as s:
                 res = s.get(BASE_URL, headers={'User-Agent': 'Mozilla/5.0'})
 
@@ -71,7 +72,7 @@ def theguruRun():
                     # frameSoup = soup.select_one('iframe', '#flash_list')
                     # iframeUrl = BASE_URL+frame['src']
                     # resIframe = requests.get(iframeUrl.text, 'html.parser')
-                    articles = soup.select(".art_list_all > li")
+                    articles = soup.select(".list-block")
 
                     for article in articles:
                         if article == recentSubject:
@@ -80,7 +81,7 @@ def theguruRun():
                             recentSubject = article
 
                         title = list(article.stripped_strings)[0]
-                        href = "https://www.theguru.co.kr"+article.select_one('a')['href']
+                        href = "https://www.thelec.kr"+article.select_one('a')['href']
                         # print(title+" "+href)
 
                         if(isKeyword(title)) and (not isDup(href)):
@@ -102,4 +103,4 @@ def theguruRun():
         schedule.run_pending()
         time.sleep(1)
 
-# theguruRun()
+# thelecRun()
