@@ -9,6 +9,10 @@ from sites.asiae import asiaeRun
 from sites.sedaily import sedailyRun
 from sites.news1 import news1Run
 from sites.newsis import newsisRun
+from sites.yna import ynaRun
+from sites.yonhapnewstv import yonhapnewstvRun
+from sites.hankyung import hankyungRun
+from sites.fnnews import fnnewsRun
 
 recentSubject = ""
 # token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
@@ -25,24 +29,14 @@ def runMethod(method):
 
 if __name__ == "__main__":
     print("[start] main.py")
-    methodList = [etodayRun, thelecRun, theguruRun, moneysRun, asiaeRun, sedailyRun, news1Run, newsisRun]
+    methodList = [etodayRun, thelecRun, theguruRun, moneysRun, asiaeRun, sedailyRun, news1Run, newsisRun, ynaRun, yonhapnewstvRun, fnnewsRun, hankyungRun]
 
-    pool = Pool(processes=8)
+    pool = Pool(processes=10)
     pool.map(runMethod, methodList)
 
+# 헤럴드경제    http://biz.heraldcorp.com/ 얘는 php로 실시간 받아오는!?!?
 
-# 서울경제    https://www.sedaily.com/
-# 뉴스1    https://www.news1.kr/
-# 뉴시스    https://newsis.com/
-
-# 연합뉴스    https://www.yna.co.kr/
-# 연합뉴스TV    https://www.yonhapnewstv.co.kr/
-# 파이낸셜뉴스    www.fnnews.com
-# 한국경제    www.hankyung.com
-# 헤럴드경제    http://biz.heraldcorp.com/
-# 노컷뉴스    www.nocutnews.co.kr
-# 더벨    http://www.thebell.co.kr/free/index.asp
-# 조선비즈    https://biz.chosun.com/
+# 조선비즈    https://biz.chosun.com/ https://cbiz.chosun.com/svc/bulletin/index.html https://cbiz.chosun.com/
 
 
 

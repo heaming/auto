@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import requests
 import telegram
 import asyncio
@@ -17,23 +16,23 @@ from concurrent.futures import ThreadPoolExecutor
 import re
 
 newsFilter = filterList.newsFilter
-BASE_URL = "https://newsis.com/realnews/"
+BASE_URL = "https://cbiz.chosun.com/svc/bulletin/index.html"
 recentSubject = ""
 # token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
 token = "6370344836:AAFXDbpiuR1vbbkwDdJFYBdFds4q3C7CXF0"
-# bot = telegram.Bot(token=token)
+bot = telegram.Bot(token=token)
 # chat_id = '-1001524509726'  # 채널
 chat_id = '5915719482'
 newsSet = set()
 
-def newsisRun():
+def cbizRun():
     global startTime
     startTime = time.time()
-    print("newsisRun()")
+    print("cbizRun()")
     async def main(text):
         if(len(newsSet) > 1000):
             newsSet.clear()
-        print("newsisRun %s" %len(newsSet))
+        print("cbizRun %s" %len(newsSet))
         print(text)
         print("===================")
         # token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
@@ -62,28 +61,33 @@ def newsisRun():
         sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
 
         try:
-            print("------[newsis] %s ------" %(time.time() - startTime))
+            print("------[cbiz] %s ------" %(time.time() - startTime))
             with requests.Session() as s:
                 res = s.get(BASE_URL, headers={'User-Agent': 'Mozilla/5.0'})
-                # res.raise_for_status()
-                # res.encoding = None #ISO-8859-1 처리
+                res.raise_for_status()
+                res.encoding = None #ISO-8859-1 처리
 
                 if res.status_code == requests.codes.ok:
-                    # print(res.encoding)
                     soup = BeautifulSoup(res.text, 'html.parser')
 
-                    articles = soup.select(".article > .articleList2 > li > div > .txtCont")
+                    articles = soup.select(".article_list > ul > li")
 
                     for article in articles:
+                        # print(article)
                         if article == recentSubject:
                             break
                         else:
                             recentSubject = article
 
-                        title = list(article.stripped_strings)[0]
-                        # print(title)
-                        # print(article.select_one('a')['href'])
-                        href = "https://newsis.com/"+article.select_one('a')['href']
+                        contents = list(article.stripped_strings)
+                        # title = ""
+                        # content = ""
+                        #
+                        # if(len(contents) > 1):
+                        #     content += "\n"+list(article.stripped_strings)[1]
+
+                        title = contents[0]
+                        href = "https://cbiz.chosun.com"+article.select_one('a')['href']
                         # print(title+" "+href)
 
                         if(isKeyword(title)) and (not isDup(href)):
@@ -105,4 +109,4 @@ def newsisRun():
         schedule.run_pending()
         time.sleep(1)
 
-# newsisRun()
+cbizRun()
