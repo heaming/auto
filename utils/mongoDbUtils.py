@@ -1,6 +1,6 @@
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
-import time
+from datetime import datetime
 
 uri = "mongodb+srv://heymi:fnffnfkffk98@cluster0.upa45og.mongodb.net/?retryWrites=true&w=majority"
 client = MongoClient(uri, server_api=ServerApi('1'))
@@ -17,7 +17,7 @@ try:
         'contents': '몰라!',
         'writer': 'heymi',
         'written_at': '20230710',
-        'created_at': time.time()
+        'created_at': datetime.now()
     }
     db.users.insert_one(sample)
 
