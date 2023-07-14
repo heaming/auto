@@ -1,8 +1,11 @@
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from datetime import datetime
+from resources.mongoInfo import uri
 
-uri = "mongodb+srv://heymi:fnffnfkffk98@cluster0.upa45og.mongodb.net/?retryWrites=true&w=majority"
+# global stack :: insert datas per 0.5hour
+newsDetail = []
+
 client = MongoClient(uri, server_api=ServerApi('1'))
 db = client.new_data
 
@@ -10,6 +13,7 @@ try:
     # [ site_name / title / url / keyword / contents / writer / written_at / created_at ]
 
     sample = {
+        'news_id' : 'sample'+datetime.now().timestamp()+len(newsDetail), #site_name+written_at+datetime.now().date+len(newsDetail)
         'site_name': 'sample',
         'title': 'title',
         'url': 'www.naver.com',
@@ -22,6 +26,5 @@ try:
     db.users.insert_one(sample)
 
     # client.admin.command('ping')
-    # print("You successfully connected to MongoDB!")
 except Exception as e:
     print(e)

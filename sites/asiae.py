@@ -8,7 +8,7 @@ import io
 from bs4 import BeautifulSoup
 import requests
 import telegram
-from resources import filterList
+from resources.filterList import newsFilter
 import pytz
 import datetime
 import logging
@@ -19,16 +19,13 @@ from selenium.common.exceptions import *
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
+from resources.telegramInfo import token, chat_id
 
 # TODO https://chromedriver.chromium.org/downloads 크롬드라이버 버전에 맞게 다운받기!
 
-newsFilter = filterList.newsFilter
+# newsFilter = filterList.newsFilter
 BASE_URL = "https://www.asiae.co.kr/realtime/"
 recentSubject = ""
-# token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
-token = "6370344836:AAFXDbpiuR1vbbkwDdJFYBdFds4q3C7CXF0" #hm
-# chat_id = '-1001524509726'  # 채널
-chat_id = '5915719482' #hm
 
 newsSet = set()
 
@@ -45,8 +42,8 @@ def asiaeRun():
         print(text)
         print("===================")
 
-        # bot = telegram.Bot(token=token)
-        # await bot.send_message(chat_id, text)
+        bot = telegram.Bot(token=token)
+        await bot.send_message(chat_id, text)
 
     def isKeyword(title):
         # print(title)

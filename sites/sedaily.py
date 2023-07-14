@@ -15,16 +15,11 @@ import logging
 from multiprocessing import Pool
 from concurrent.futures import ThreadPoolExecutor
 import re
+from resources.telegramInfo import token, chat_id
 
 newsFilter = filterList.newsFilter
 BASE_URL = "https://www.sedaily.com/News/HeadLine/HeadLineListAjax"
-# https://www.sedaily.com/News/HeadLine/HeadLineViewAjax?Nid=29S2C1H8HL&NClass=AL&Keyword=&HeadLineTime=1
 recentSubject = ""
-# token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
-token = "6370344836:AAFXDbpiuR1vbbkwDdJFYBdFds4q3C7CXF0"
-# bot = telegram.Bot(token=token)
-# chat_id = '-1001524509726'  # 채널
-chat_id = '5915719482'
 newsSet = set()
 
 def sedailyRun():
@@ -37,9 +32,8 @@ def sedailyRun():
         print("sedailyRun %s" %len(newsSet))
         print(text)
         print("===================")
-        # token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
-        # bot = telegram.Bot(token=token)
-        # await bot.send_message(chat_id, text)
+        bot = telegram.Bot(token=token)
+        await bot.send_message(chat_id, text)
 
     def isKeyword(title):
         # print(title)

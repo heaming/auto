@@ -13,14 +13,11 @@ import datetime
 import logging
 from multiprocessing import Pool
 from concurrent.futures import ThreadPoolExecutor
+from resources.telegramInfo import token, chat_id
 
 newsFilter = filterList.newsFilter
 BASE_URL = "https://moneys.mt.co.kr/news/mwList.php?code=w0000&code2=w0100"
 recentSubject = ""
-# token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
-token = "6370344836:AAFXDbpiuR1vbbkwDdJFYBdFds4q3C7CXF0"
-# chat_id = '-1001524509726'  # 채널
-chat_id = '5915719482'
 newsSet = set()
 
 def moneysRun():
@@ -35,8 +32,8 @@ def moneysRun():
         print(text)
         print("===================")
 
-        # bot = telegram.Bot(token=token)
-        # await bot.send_message(chat_id, text)
+        bot = telegram.Bot(token=token)
+        await bot.send_message(chat_id, text)
 
     def isKeyword(title):
         if len(list(filter(lambda f: f in title, newsFilter))) > 0:

@@ -14,14 +14,11 @@ import logging
 from multiprocessing import Pool
 from concurrent.futures import ThreadPoolExecutor
 import re
+from resources.telegramInfo import token, chat_id
 
 newsFilter = filterList.newsFilter
 BASE_URL = "https://www.etoday.co.kr/news/flashnews/flash_list"
 recentSubject = ""
-# token = "1851203279:AAES64ZdTQz8Eld-zuuT-j3Sg3hOskVvAl4"
-token = "6370344836:AAFXDbpiuR1vbbkwDdJFYBdFds4q3C7CXF0" #hm
-# chat_id = '-1001524509726'  # 채널
-chat_id = '5915719482' #hm
 newsSet = set()
 
 def etodayRun():
