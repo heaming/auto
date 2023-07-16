@@ -6,24 +6,17 @@ import time
 import sys
 import io
 from bs4 import BeautifulSoup
-import requests
-import telegram
-from resources.filterList import newsFilter
+from resources import filterList
 import pytz
 import datetime
-import logging
-from multiprocessing import Pool
-from concurrent.futures import ThreadPoolExecutor
-import re
 from selenium.common.exceptions import *
 from selenium import webdriver
+from selenium.webdriver import chrome
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from resources.telegramInfo import token, chat_id
 
-# TODO https://chromedriver.chromium.org/downloads 크롬드라이버 버전에 맞게 다운받기!
-
-# newsFilter = filterList.newsFilter
+newsFilter = filterList.newsFilter
 BASE_URL = "https://www.asiae.co.kr/realtime/"
 recentSubject = ""
 
@@ -71,8 +64,6 @@ def asiaeRun():
         options.add_argument("disable-gpu")
         options.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36")
         options.add_argument("lang=ko_KR") # 한국어!
-
-        # driver = webdriver.Chrome(ChromeDriverManager().install())
 
         try:
             print("------[asiae] %s ------" %(time.time() - startTime))

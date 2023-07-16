@@ -33,8 +33,8 @@ def news1Run():
         print("news1Run %s" %len(newsSet))
         print(text)
         print("===================")
-        # bot = telegram.Bot(token=token)
-        # await bot.send_message(chat_id, text)
+        bot = telegram.Bot(token=token)
+        await bot.send_message(chat_id, text)
 
     def isKeyword(title):
         # print(title)
@@ -120,3 +120,4 @@ def news1Run():
         time.sleep(1)
 
 # news1Run()
+

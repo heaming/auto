@@ -65,11 +65,6 @@ def etodayRun():
 
                 if res.status_code == requests.codes.ok:
                     soup = BeautifulSoup(res.text, 'html.parser')
-
-                    # print(soup)
-                    # frameSoup = soup.select_one('iframe', '#flash_list')
-                    # iframeUrl = BASE_URL+frame['src']
-                    # resIframe = requests.get(iframeUrl.text, 'html.parser')
                     articles = soup.select(".flash_tab_txt")
                     # print(articles)
                     # articles = resIframe.select("ul > li > .flash_tab_txt t_reduce")
