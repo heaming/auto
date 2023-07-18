@@ -13,7 +13,7 @@ import datetime
 import logging
 from multiprocessing import Pool
 from concurrent.futures import ThreadPoolExecutor
-from resources.telegramInfo import token, chat_id
+from resources.telegramInfo import token, chat_id, bot
 
 newsFilter = filterList.newsFilter
 BASE_URL = "https://moneys.mt.co.kr/news/mwList.php?code=w0000&code2=w0100"
@@ -31,7 +31,6 @@ def moneysRun():
         print("moneysRun :: %s" %len(newsSet))
         print(text)
         print("===================")
-
         bot = telegram.Bot(token=token)
         await bot.send_message(chat_id, text)
 

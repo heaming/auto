@@ -13,7 +13,7 @@ import datetime
 import logging
 from multiprocessing import Pool
 from concurrent.futures import ThreadPoolExecutor
-from resources.telegramInfo import token, chat_id
+from resources.telegramInfo import token, chat_id, bot
 import re
 
 newsFilter = filterList.newsFilter

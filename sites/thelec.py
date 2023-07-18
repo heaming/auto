@@ -14,7 +14,7 @@ import logging
 from multiprocessing import Pool
 from concurrent.futures import ThreadPoolExecutor
 import re
-from resources.telegramInfo import token, chat_id
+from resources.telegramInfo import token, chat_id, bot
 
 newsFilter = filterList.newsFilter
 BASE_URL = "https://www.thelec.kr/news/articleList.html?view_type=sm"
@@ -25,15 +25,16 @@ def thelecRun():
     global startTime
     startTime = time.time()
     print("thelecRun()")
-    async def main(text):
+
+    def main(text):
         if(len(newsSet) > 1000):
             newsSet.clear()
         print("thelecRun %s" %len(newsSet))
         print(text)
         print("===================")
-
-        bot = telegram.Bot(token=token)
-        await bot.send_message(chat_id, text)
+        return text
+        # bot = telegram.Bot(token=token)
+        # await bot.send_message(chat_id, text)
 
     def isKeyword(title):
         # print(title)
@@ -83,7 +84,7 @@ def thelecRun():
                         if(isKeyword(title)) and (not isDup(href)):
                             newsSet.add(href)
                             curTxt = title+"\n"+href
-                            asyncio.run(main(curTxt))
+                            main(curTxt)
 
 
         except requests.exceptions.ConnectionError as e:
@@ -93,8 +94,8 @@ def thelecRun():
             job()
 
     schedule.every(1).seconds.do(job)
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
+    # asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    #
     while True:
         schedule.run_pending()
         time.sleep(1)

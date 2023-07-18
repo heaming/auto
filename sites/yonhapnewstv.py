@@ -18,7 +18,7 @@ from selenium.common.exceptions import *
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
-from resources.telegramInfo import token, chat_id
+from resources.telegramInfo import token, chat_id, bot
 
 newsFilter = filterList.newsFilter
 BASE_URL = "https://www.yonhapnewstv.co.kr/news?ct=1"

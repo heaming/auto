@@ -1,5 +1,8 @@
-import requests
+import certifi
+import trio
 import telegram
+import trio_asyncio
+import ssl
 import asyncio
 import schedule
 import time
@@ -10,11 +13,8 @@ import requests
 from resources import filterList
 import pytz
 import datetime
-import logging
-from multiprocessing import Pool
-from concurrent.futures import ThreadPoolExecutor
 import re
-from resources.telegramInfo import token, chat_id
+from resources.telegramInfo import token, chat_id, bot
 
 newsFilter = filterList.newsFilter
 BASE_URL = "https://www.etoday.co.kr/news/flashnews/flash_list"
@@ -32,7 +32,6 @@ def etodayRun():
         print("etodayRun :: %s" % len(newsSet))
         print(text)
         print("===================")
-
         bot = telegram.Bot(token=token)
         await bot.send_message(chat_id, text)
 
@@ -61,7 +60,7 @@ def etodayRun():
         try:
             print("------[etoday] %s ------" %(time.time() - startTime))
             with requests.Session() as s:
-                res = s.get(BASE_URL, headers={'User-Agent': 'Mozilla/5.0'})
+                res = s.get(BASE_URL, headers={'User-Agent': 'Mozilla/5.0'}, verify=certifi.where())
 
                 if res.status_code == requests.codes.ok:
                     soup = BeautifulSoup(res.text, 'html.parser')
@@ -83,6 +82,10 @@ def etodayRun():
                             newsSet.add(href)
                             curTxt = title+"\n"+href
                             asyncio.run(main(curTxt))
+                            # trio_asyncio.run(main(curTxt))
+        except ssl.SSLWantReadError as e:
+            print(e)
+            return
 
         except requests.exceptions.ConnectionError as e:
             print("ConnectionError occurred:", str(e))
@@ -90,8 +93,8 @@ def etodayRun():
             time.sleep(3)
             job()
 
-    schedule.every(1).seconds.do(job)
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    schedule.every(1).seconds.do(job)
 
     while True:
         schedule.run_pending()

@@ -1,6 +1,11 @@
+import threading
+
+import schedule
+import asyncio
 import telegram
 import time
 from concurrent import futures
+from queue import Queue
 from multiprocessing import Pool
 from sites.moneys import moneysRun
 from sites.etoday import etodayRun
@@ -17,6 +22,7 @@ from sites.fnnews import fnnewsRun
 from sites.cbiz import cbizRun
 from sites.thebell import thebellRun
 from sites.nocutnews import nocutnewsRun
+from resources.telegramInfo import token, chat_id, bot
 
 global startTime
 
@@ -25,32 +31,64 @@ def runMethod(method):
     method()
     print("------ %s ------" %(time.time() - startTime))
 
-def runThread(methodList):
+def runThread():
     startTime = time.time()
     print("------ [runThread] %s ------" %(time.time() - startTime))
-    with futures.ThreadPoolExecutor(max_workers=5) as executor:
-        list(executor.map(runMethod, methodList))
+    methodList = [thelecRun, theguruRun]
+    # with futures.ThreadPoolExecutor(max_workers=3) as executor:
+    #     result = list(executor.map(runMethod, methodList))
+    #     print(result)
 
-# def runProccess(threadMethod):
-#     startTime = time.time()
-#     print("------ [runProccess] %s ------" %(time.time() - startTime))
-#     threadMethod()
+def getNews(result, que):
+    print("getNews :: ")
+    for msg in result:
+        event = threading.Event()
+        que.put((msg, event))
+        print("waiting..")
+        event.wait()
 
-def main():
-    methodList = [etodayRun, thelecRun, asiaeRun, yonhapnewstvRun, news1Run, theguruRun, moneysRun, sedailyRun, newsisRun, ynaRun, fnnewsRun, hankyungRun, cbizRun, thebellRun, nocutnewsRun]
-    with futures.ThreadPoolExecutor(max_workers=5) as executor:
-        list(executor.map(runMethod, methodList))
+def sendMsg(que):
+    while True:
+        msg, event = que.get()
+        print("sendMsg")
+        bot = telegram.Bot(token=token)
+        response = bot.send_message(chat_id, msg)
+        """ 
+            Returns:
+                :class:`telegram.Message`: On success, the sent message is returned.
+        """
+        if len(response) > 0:
+            event.set()
+            que.task_done()
+
+async def main():
+    print("st")
+    start = time.time()
+    # task1 = asyncio.create_task(thelecRun())
+    # task2 = asyncio.create_task(theguruRun())
+    tasks = [thelecRun(), theguruRun()]
+    result = await asyncio.gather(*tasks)
+    # result = await task1
+    # result = await asyncio.gather(thelecRun(), theguruRun())
+    end = time.time()
+    print(f'time taken: {end - start}')
+    print(result)
+
+asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+asyncio.run(main())
+
+# if __name__ == "__main__":
+#
+#     print("[start] main.py")
+#     msgQue = Queue()
+#
+#     asyncio.run(main())
 
 
 
-if __name__ == "__main__":
-
-    print("[start] main.py")
-    main()
-    # methodList = [etodayRun, thelecRun, theguruRun, moneysRun, sedailyRun, newsisRun, ynaRun, fnnewsRun, hankyungRun, cbizRun, thebellRun, nocutnewsRun]
-    # pool = Pool(processes=15)
-    # pool.map(runMethod, methodList)
-
+    # methodList = [thelecRun, asiaeRun, yonhapnewstvRun, news1Run, theguruRun, moneysRun, sedailyRun, newsisRun, ynaRun, fnnewsRun, hankyungRun, cbizRun, thebellRun, nocutnewsRun]
+    # with futures.ThreadPoolExecutor(max_workers=5) as executor:
+    #     executor.map(runMethod, methodList)
 
 
 

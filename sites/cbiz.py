@@ -14,7 +14,7 @@ import logging
 from multiprocessing import Pool
 from concurrent.futures import ThreadPoolExecutor
 import re
-from resources.telegramInfo import token, chat_id
+from resources.telegramInfo import token, chat_id, bot
 
 newsFilter = filterList.newsFilter
 BASE_URL = "https://cbiz.chosun.com/svc/bulletin/index.html"
@@ -25,6 +25,7 @@ def cbizRun():
     global startTime
     startTime = time.time()
     print("cbizRun()")
+
     async def main(text):
         if(len(newsSet) > 1000):
             newsSet.clear()

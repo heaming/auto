@@ -1,4 +1,3 @@
-import requests
 import telegram
 import asyncio
 import schedule
@@ -9,7 +8,6 @@ from bs4 import BeautifulSoup
 from resources import filterList
 import pytz
 import datetime
-from selenium.common.exceptions import *
 from selenium import webdriver
 from selenium.webdriver import chrome
 from selenium.webdriver.chrome.options import Options
@@ -34,7 +32,6 @@ def asiaeRun():
         print("asiaeRun :: %s" % len(newsSet))
         print(text)
         print("===================")
-
         bot = telegram.Bot(token=token)
         await bot.send_message(chat_id, text)
 

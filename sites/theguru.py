@@ -14,7 +14,7 @@ import logging
 from multiprocessing import Pool
 from concurrent.futures import ThreadPoolExecutor
 import re
-from resources.telegramInfo import token, chat_id
+from resources.telegramInfo import token, chat_id, bot
 
 newsFilter = filterList.newsFilter
 BASE_URL = "https://www.theguru.co.kr/news/article_list_all.html"
@@ -31,8 +31,9 @@ def theguruRun():
         print("theguruRun %s" %len(newsSet))
         print(text)
         print("===================")
-        bot = telegram.Bot(token=token)
-        await bot.send_message(chat_id, text)
+        return text
+        # bot = telegram.Bot(token=token)
+        # await bot.send_message(chat_id, text)
 
     def isKeyword(title):
         # print(title)
@@ -92,7 +93,7 @@ def theguruRun():
             job()
 
     schedule.every(1).seconds.do(job)
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    # asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
     while True:
         schedule.run_pending()

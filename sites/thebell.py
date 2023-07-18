@@ -1,4 +1,3 @@
-import requests
 import telegram
 import asyncio
 import schedule
@@ -10,11 +9,7 @@ import requests
 from resources import filterList
 import pytz
 import datetime
-import logging
-from multiprocessing import Pool
-from concurrent.futures import ThreadPoolExecutor
-import re
-from resources.telegramInfo import token, chat_id
+from resources.telegramInfo import token, chat_id, bot
 
 newsFilter = filterList.newsFilter
 BASE_URL = "http://www.thebell.co.kr/free/content/Article.asp?svccode=00"
