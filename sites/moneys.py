@@ -83,11 +83,11 @@ def moneysRun():
             time.sleep(3)
             job()
 
-    schedule.every(1).seconds.do(job)
+    # schedule.every(1).seconds.do(job)
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
     while True:
-        schedule.run_pending()
+        # schedule.run_pending()
         time.sleep(1)
 
 # moneysRun()

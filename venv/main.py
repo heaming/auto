@@ -26,10 +26,11 @@ from resources.telegramInfo import token, chat_id, bot
 
 global startTime
 
-def runMethod(method):
+async def runMethod(method):
     startTime = time.time()
-    method()
+    result = method()
     print("------ %s ------" %(time.time() - startTime))
+    return result
 
 def runThread():
     startTime = time.time()
@@ -61,21 +62,42 @@ def sendMsg(que):
             event.set()
             que.task_done()
 
+list = [thelecRun, theguruRun]
+
 async def main():
+    loop = asyncio.get_event_loop()
+    tasks = [loop.create_task(runMethod(i)) for i in list]
+    for response in await asyncio.gather(*tasks):
+        print(response)
+
+        # task1 = asyncio.create_task(thelecRun())
+        # task2 = asyncio.create_task(theguruRun())
+        # result1 = await task1
+        # result2 = await task2
+        # print(result)
+        # print(result1)
+        # print(result2)
+        # return result
+
+    # result = await asyncio.gather(thelecRun(), theguruRun())
+    # input_ = [theguruRun(), thelecRun()]
+
+
+    # print(result1)
+    # print(result2)
+
+
+if __name__ == '__main__':
     print("st")
     start = time.time()
-    # task1 = asyncio.create_task(thelecRun())
-    # task2 = asyncio.create_task(theguruRun())
-    tasks = [thelecRun(), theguruRun()]
-    result = await asyncio.gather(*tasks)
-    # result = await task1
-    # result = await asyncio.gather(thelecRun(), theguruRun())
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    loop = asyncio.get_event_loop()
+    res = asyncio.run(main())
+    loop.run_until_complete(main())
+    loop.close()
+    print(res)
     end = time.time()
     print(f'time taken: {end - start}')
-    print(result)
-
-asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-asyncio.run(main())
 
 # if __name__ == "__main__":
 #

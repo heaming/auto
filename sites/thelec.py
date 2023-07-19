@@ -21,17 +21,19 @@ BASE_URL = "https://www.thelec.kr/news/articleList.html?view_type=sm"
 recentSubject = ""
 newsSet = set()
 
-def thelecRun():
+async def thelecRun():
     global startTime
     startTime = time.time()
     print("thelecRun()")
 
-    def main(text):
+    async def main():
         if(len(newsSet) > 1000):
             newsSet.clear()
+        text = await job()
         print("thelecRun %s" %len(newsSet))
         print(text)
         print("===================")
+
         return text
         # bot = telegram.Bot(token=token)
         # await bot.send_message(chat_id, text)
@@ -48,7 +50,7 @@ def thelecRun():
             return True
         return False
 
-    def job():
+    async def job():
         global recentSubject
         now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
         # if now.hour >= 24 or now.hour <= 6:
@@ -59,16 +61,13 @@ def thelecRun():
 
         try:
             print("------[thelec] %s ------" %(time.time() - startTime))
+            curList = []
+
             with requests.Session() as s:
                 res = s.get(BASE_URL, headers={'User-Agent': 'Mozilla/5.0'})
 
                 if res.status_code == requests.codes.ok:
                     soup = BeautifulSoup(res.text, 'html.parser')
-
-                    # print(soup)
-                    # frameSoup = soup.select_one('iframe', '#flash_list')
-                    # iframeUrl = BASE_URL+frame['src']
-                    # resIframe = requests.get(iframeUrl.text, 'html.parser')
                     articles = soup.select(".list-block")
 
                     for article in articles:
@@ -84,20 +83,34 @@ def thelecRun():
                         if(isKeyword(title)) and (not isDup(href)):
                             newsSet.add(href)
                             curTxt = title+"\n"+href
-                            main(curTxt)
+                            curList.append(curTxt)
 
+                    return curList
 
         except requests.exceptions.ConnectionError as e:
             print("ConnectionError occurred:", str(e))
             print("Retrying in 3 seconds...")
-            time.sleep(3)
-            job()
+            asyncio.sleep(3)
+            await main()
 
+        except asyncio.futures.TimeoutError as e:
+            print("asyncio TimeoutError:", str(e))
+            asyncio.sleep(3)
+            await main()
+
+        except Exception as e:
+            print("Exception:", str(e))
+            asyncio.sleep(3)
+            await main()
+
+    await main()
     schedule.every(1).seconds.do(job)
     # asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     #
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
 
-# thelecRun()
+asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+loop = asyncio.get_event_loop()
+asyncio.run(thelecRun())
+loop.run_until_complete(thelecRun())
+loop.time()
+loop.close()
