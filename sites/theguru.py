@@ -7,7 +7,7 @@ import sys
 import io
 from bs4 import BeautifulSoup
 import requests
-from resources import filterList
+from resources.filterList import newsFilter, newsSet, msgQue
 import pytz
 import datetime
 import logging
@@ -16,10 +16,8 @@ from concurrent.futures import ThreadPoolExecutor
 import re
 from resources.telegramInfo import token, chat_id, bot
 
-newsFilter = filterList.newsFilter
 BASE_URL = "https://www.theguru.co.kr/news/article_list_all.html"
 recentSubject = ""
-newsSet = set()
 
 async def theguruRun():
     global startTime
@@ -29,13 +27,18 @@ async def theguruRun():
     async def main():
         if(len(newsSet) > 1000):
             newsSet.clear()
+        await job()
 
-        text = await job()
+        # textList = await job()
         print("theguruRun %s" %len(newsSet))
-        print(text)
+        # print(textList)
+        # msgQue.append(textList)
+        print(msgQue)
         print("===================")
 
-        return text
+
+
+        # return text
         # bot = telegram.Bot(token=token)
         # await bot.send_message(chat_id, text)
 
@@ -85,8 +88,9 @@ async def theguruRun():
                             newsSet.add(href)
                             curTxt = title+"\n"+href
                             curList.append(curTxt)
+                            msgQue.append(curTxt)
 
-                    return curList
+                    # return curList
 
         except requests.exceptions.ConnectionError as e:
             print("ConnectionError occurred:", str(e))
@@ -105,11 +109,18 @@ async def theguruRun():
             await main()
 
     await main()
-    schedule.every(1).seconds.do(job)
+    # schedule.every(1).seconds.do(job)
     # asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
     # while True:
     #     # schedule.run_pending()
     #     asyncio.sleep(1)
+# asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+# loop = asyncio.get_event_loop()
 
-# theguruRun()
+
+# asyncio.run(theguruRun())
+# loop.run_forever()
+# loop.run_until_complete(theguruRun())
+# loop.close()
+

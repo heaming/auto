@@ -7,7 +7,7 @@ import sys
 import io
 from bs4 import BeautifulSoup
 import requests
-from resources import filterList
+from resources.filterList import newsFilter, newsSet, msgQue
 import pytz
 import datetime
 import logging
@@ -16,10 +16,8 @@ from concurrent.futures import ThreadPoolExecutor
 import re
 from resources.telegramInfo import token, chat_id, bot
 
-newsFilter = filterList.newsFilter
 BASE_URL = "https://www.thelec.kr/news/articleList.html?view_type=sm"
 recentSubject = ""
-newsSet = set()
 
 async def thelecRun():
     global startTime
@@ -29,12 +27,14 @@ async def thelecRun():
     async def main():
         if(len(newsSet) > 1000):
             newsSet.clear()
-        text = await job()
+        await job()
+        # textList = await job()
         print("thelecRun %s" %len(newsSet))
-        print(text)
+        # print(textList)
+        print(msgQue)
         print("===================")
 
-        return text
+        # return text
         # bot = telegram.Bot(token=token)
         # await bot.send_message(chat_id, text)
 
@@ -84,8 +84,9 @@ async def thelecRun():
                             newsSet.add(href)
                             curTxt = title+"\n"+href
                             curList.append(curTxt)
+                            msgQue.append(curTxt)
 
-                    return curList
+                    # return curList
 
         except requests.exceptions.ConnectionError as e:
             print("ConnectionError occurred:", str(e))
@@ -104,13 +105,13 @@ async def thelecRun():
             await main()
 
     await main()
-    schedule.every(1).seconds.do(job)
+    # schedule.every(1).seconds.do(job)
     # asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     #
 
-asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-loop = asyncio.get_event_loop()
-asyncio.run(thelecRun())
-loop.run_until_complete(thelecRun())
-loop.time()
-loop.close()
+# asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+# loop = asyncio.get_event_loop()
+# asyncio.run(thelecRun())
+# loop.run_until_complete(thelecRun())
+# loop.time()
+# loop.close()

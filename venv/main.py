@@ -23,81 +23,71 @@ from sites.cbiz import cbizRun
 from sites.thebell import thebellRun
 from sites.nocutnews import nocutnewsRun
 from resources.telegramInfo import token, chat_id, bot
+from resources.filterList import msgQue
 
 global startTime
 
-async def runMethod(method):
-    startTime = time.time()
-    result = method()
-    print("------ %s ------" %(time.time() - startTime))
-    return result
-
-def runThread():
-    startTime = time.time()
-    print("------ [runThread] %s ------" %(time.time() - startTime))
-    methodList = [thelecRun, theguruRun]
-    # with futures.ThreadPoolExecutor(max_workers=3) as executor:
-    #     result = list(executor.map(runMethod, methodList))
-    #     print(result)
-
-def getNews(result, que):
-    print("getNews :: ")
-    for msg in result:
-        event = threading.Event()
-        que.put((msg, event))
-        print("waiting..")
-        event.wait()
-
-def sendMsg(que):
-    while True:
-        msg, event = que.get()
+async def sendMsg(que):
+    if len(que) > 0:
         print("sendMsg")
-        bot = telegram.Bot(token=token)
-        response = bot.send_message(chat_id, msg)
-        """ 
-            Returns:
-                :class:`telegram.Message`: On success, the sent message is returned.
-        """
-        if len(response) > 0:
-            event.set()
-            que.task_done()
-
-list = [thelecRun, theguruRun]
+        while que:
+            msg = que.pop()
+            bot = telegram.Bot(token=token)
+            response = await bot.send_message(chat_id, msg)
+        else:
+            return
+            """ 
+                Returns:
+                    :class:`telegram.Message`: On success, the sent message is returned.
+            """
 
 async def main():
-    loop = asyncio.get_event_loop()
-    tasks = [loop.create_task(runMethod(i)) for i in list]
-    for response in await asyncio.gather(*tasks):
-        print(response)
+    # loop = asyncio.get_event_loop()
+    # tasks = [loop.create_task(runMethod(i)) for i in list]
+    # for response in await asyncio.gather(*tasks):
+    #     print(response)
+    # task1 = asyncio.create_task(thelecRun())
+    # task2 = asyncio.create_task(theguruRun())
+    # result1 = await thelecRun()
+    # result2 = await theguruRun()
+    # print("result1 :: ",result1)
+    # print("result2 :: ",result2)
+    print("얍")
+    methodList = [thelecRun(), theguruRun(), sendMsg(msgQue)]
+    await asyncio.gather(*methodList)
+    # asyncio.sleep(1)
+    """ test """
 
-        # task1 = asyncio.create_task(thelecRun())
-        # task2 = asyncio.create_task(theguruRun())
-        # result1 = await task1
-        # result2 = await task2
-        # print(result)
-        # print(result1)
-        # print(result2)
-        # return result
-
-    # result = await asyncio.gather(thelecRun(), theguruRun())
-    # input_ = [theguruRun(), thelecRun()]
-
-
-    # print(result1)
-    # print(result2)
-
-
-if __name__ == '__main__':
-    print("st")
-    start = time.time()
+def mainHandler():
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     loop = asyncio.get_event_loop()
     res = asyncio.run(main())
     loop.run_until_complete(main())
+    # loop.run_forever()
     loop.close()
     print(res)
     end = time.time()
     print(f'time taken: {end - start}')
+
+if __name__ == '__main__':
+    print("[__main__] start")
+    start = time.time()
+    schedule.every(1).seconds.do(mainHandler)
+
+    while True:
+        schedule.run_pending()
+
+    # start = time.time()
+    # asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    # loop = asyncio.get_event_loop()
+    # res = asyncio.run(main())
+    # loop.run_until_complete(main())
+    # # loop.call_later(1.0, main)
+    # # loop.run_forever()
+    # loop.close()
+    # print(res)
+    # end = time.time()
+    # print(f'time taken: {end - start}')
 
 # if __name__ == "__main__":
 #

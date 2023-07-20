@@ -1,7 +1,5 @@
 import certifi
-import trio
 import telegram
-import trio_asyncio
 import ssl
 import asyncio
 import schedule

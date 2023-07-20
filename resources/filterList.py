@@ -1,3 +1,6 @@
+from collections import deque
+newsSet = set()
+msgQue = deque()
 newsFilter = [
     "[속보]",
     "증시",
