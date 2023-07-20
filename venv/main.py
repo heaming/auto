@@ -1,9 +1,10 @@
 import threading
-
+import re
 import schedule
 import asyncio
 import telegram
 import time
+import tenacity
 from concurrent import futures
 from queue import Queue
 from multiprocessing import Pool
@@ -23,24 +24,37 @@ from sites.cbiz import cbizRun
 from sites.thebell import thebellRun
 from sites.nocutnews import nocutnewsRun
 from resources.telegramInfo import token, chat_id, bot
-from resources.filterList import msgQue
+from resources.filterList import newsFilter, newsSet, msgQue
+
 
 global startTime
+global retrySeconds
+retrySeconds = 10
 
+# def throw_error():
+#     raise ValueError(f"retry in {} seconds")
+@tenacity.retry(
+    wait=tenacity.wait_fixed(retrySeconds), # wait 파라미터 추가
+    stop=tenacity.stop_after_attempt(100),
+)
 async def sendMsg(que):
     if len(que) > 0:
         print("sendMsg")
         sendedCnt = 0
         while que:
-            if(sendedCnt < 20):
-                if que:
-                    msg = que.pop()
-                    bot = telegram.Bot(token=token)
-                    response = await bot.send_message(chat_id, msg)
-                    if response:
-                        sendedCnt += 1
-            else:
-                return
+            try:
+                if(sendedCnt < 20):
+                    if que:
+                        msg = que.pop()
+                        bot = telegram.Bot(token=token)
+                        response = await bot.send_message(chat_id, msg)
+                        if response:
+                            sendedCnt += 1
+                else:
+                    return
+            except telegram.error.RetryAfter as e:
+                print(str(e))
+                retrySeconds = int(re.sub(r'[^0-9]', '', str(e)))
     else:
         return
 
