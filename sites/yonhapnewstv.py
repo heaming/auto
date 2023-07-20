@@ -1,43 +1,29 @@
-import requests
-import telegram
 import asyncio
-import schedule
 import time
 import sys
 import io
 from bs4 import BeautifulSoup
 import requests
-from resources import filterList
+from resources.filterList import newsFilter, newsSet, msgQue
 import pytz
 import datetime
-import logging
-from multiprocessing import Pool
-from concurrent.futures import ThreadPoolExecutor
-import re
 from selenium.common.exceptions import *
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
-from resources.telegramInfo import token, chat_id, bot
 
-newsFilter = filterList.newsFilter
 BASE_URL = "https://www.yonhapnewstv.co.kr/news?ct=1"
 recentSubject = ""
-newsSet = set()
 
-def yonhapnewstvRun():
+async def yonhapnewstvRun():
     global startTime
     startTime = time.time()
     print("yonhapnewstvRun()")
 
-    async def main(text):
+    async def main():
         if(len(newsSet) > 1000):
             newsSet.clear()
-        print("yonhapnewstvRun %s" %len(newsSet))
-        print(text)
-        print("===================")
-        bot = telegram.Bot(token=token)
-        await bot.send_message(chat_id, text)
+        await job()
 
     def isKeyword(title):
         # print(title)
@@ -51,7 +37,7 @@ def yonhapnewstvRun():
             return True
         return False
 
-    def job():
+    async def job():
         global recentSubject, driver, openedWindow
         now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
         # if now.hour >= 24 or now.hour <= 6:
@@ -77,6 +63,11 @@ def yonhapnewstvRun():
             res = driver.page_source
             soup = BeautifulSoup(res, 'html.parser')
 
+            if(len(openedWindow) > 0):
+                for win in openedWindow:
+                    driver.switch_to.window(win)
+                    driver.close()
+
             articles = soup.select("#content > .inner > .cont-row > div > ul > li > div > .item-body")
 
             for article in articles:
@@ -99,27 +90,38 @@ def yonhapnewstvRun():
                 if(isKeyword(title)) and (not isDup(href)):
                     newsSet.add(href)
                     curTxt = title+"\n"+href+content
-                    asyncio.run(main(curTxt))
+                    msgQue.append(curTxt)
 
+            driver.quit()
 
-        except:
-            if(len(openedWindow) > 0):
-                for win in openedWindow:
-                    driver.switch_to.window(win)
-                    driver.close()
+        except requests.exceptions.ConnectionError as e:
+            print("ConnectionError occurred:", str(e))
+            print("Retrying in 3 seconds...")
+            asyncio.sleep(3)
+            await main()
 
-            print("ConnectionError occurred:")
+        except asyncio.futures.TimeoutError as e:
+            print("asyncio TimeoutError:", str(e))
+            asyncio.sleep(3)
+            await main()
+
+        except Exception as e:
+            for win in openedWindow:
+                driver.switch_to.window(win)
+                driver.close()
+            print("ConnectionError occurred:", str(e))
             print("Retrying in 3 seconds...")
 
             driver.quit()
-            time.sleep(3)
-            job()
+            asyncio.sleep(3)
+            await main()
 
-    schedule.every(1).seconds.do(job)
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+    await main()
 
 # yonhapnewstvRun()
+# asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+# loop = asyncio.get_event_loop()
+# asyncio.run(yonhapnewstvRun())
+# loop.run_until_complete(yonhapnewstvRun())
+# loop.time()
+# loop.close()

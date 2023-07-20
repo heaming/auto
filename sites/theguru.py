@@ -1,5 +1,3 @@
-import requests
-import telegram
 import asyncio
 import schedule
 import time
@@ -10,11 +8,7 @@ import requests
 from resources.filterList import newsFilter, newsSet, msgQue
 import pytz
 import datetime
-import logging
-from multiprocessing import Pool
-from concurrent.futures import ThreadPoolExecutor
-import re
-from resources.telegramInfo import token, chat_id, bot
+
 
 BASE_URL = "https://www.theguru.co.kr/news/article_list_all.html"
 recentSubject = ""

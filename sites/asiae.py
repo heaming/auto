@@ -1,39 +1,33 @@
-import telegram
 import asyncio
-import schedule
 import time
 import sys
 import io
 from bs4 import BeautifulSoup
-from resources import filterList
+import requests
+from resources.filterList import newsFilter, newsSet, msgQue
 import pytz
 import datetime
+from selenium.common.exceptions import *
 from selenium import webdriver
-from selenium.webdriver import chrome
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
-from resources.telegramInfo import token, chat_id
 
-newsFilter = filterList.newsFilter
 BASE_URL = "https://www.asiae.co.kr/realtime/"
 recentSubject = ""
 
-newsSet = set()
-
-def asiaeRun():
-
+async def asiaeRun():
     global startTime
     startTime = time.time()
     print("asiaeRun()")
 
-    async def main(text):
+    async def main():
         if(len(newsSet) > 1000):
             newsSet.clear()
-        print("asiaeRun :: %s" % len(newsSet))
-        print(text)
-        print("===================")
-        bot = telegram.Bot(token=token)
-        await bot.send_message(chat_id, text)
+        await job()
+        # print("thelecRun %s" %len(newsSet))
+        # print(textList)
+        # print(msgQue)
+        # print("===================")
 
     def isKeyword(title):
         # print(title)
@@ -47,7 +41,7 @@ def asiaeRun():
             return True
         return False
 
-    def job():
+    async def job():
         global recentSubject, driver, openedWindow
         now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
         # if now.hour >= 24 or now.hour <= 6:
@@ -64,6 +58,7 @@ def asiaeRun():
 
         try:
             print("------[asiae] %s ------" %(time.time() - startTime))
+            curList = []
 
             driver = webdriver.Chrome(options=options)
             driver.implicitly_wait(1)
@@ -80,6 +75,7 @@ def asiaeRun():
                     driver.close()
 
             articles = soup.select("#pageList > ul > li")
+            # print(articles)
 
             for article in articles:
                 if article == recentSubject:
@@ -97,25 +93,28 @@ def asiaeRun():
                 if(isKeyword(title)) and (not isDup(href)):
                     newsSet.add(href)
                     curTxt = title+"\n"+href
-                    asyncio.run(main(curTxt))
+                    curList.append(curTxt)
+                    msgQue.append(curTxt)
 
+            driver.quit()
 
-        except:
+        except Exception as e:
             for win in openedWindow:
                 driver.switch_to.window(win)
                 driver.close()
-            print("ConnectionError occurred:")
+            print("ConnectionError occurred:", str(e))
             print("Retrying in 3 seconds...")
 
             driver.quit()
-            time.sleep(3)
-            job()
+            asyncio.sleep(3)
+            await main()
 
-    schedule.every(1).seconds.do(job)
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    await main()
 
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
-
-# asiaeRun()
+# # asiaeRun()
+# asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+# loop = asyncio.get_event_loop()
+# asyncio.run(asiaeRun())
+# loop.run_until_complete(asiaeRun())
+# loop.time()
+# loop.close()

@@ -1,38 +1,29 @@
-import requests
-import telegram
 import asyncio
-import schedule
 import time
 import sys
 import io
 from bs4 import BeautifulSoup
 import requests
-from resources import filterList
+from resources.filterList import newsFilter, newsSet, msgQue
 import pytz
 import datetime
-import logging
-from multiprocessing import Pool
-from concurrent.futures import ThreadPoolExecutor
-from resources.telegramInfo import token, chat_id, bot
 
-newsFilter = filterList.newsFilter
 BASE_URL = "https://moneys.mt.co.kr/news/mwList.php?code=w0000&code2=w0100"
 recentSubject = ""
-newsSet = set()
 
-def moneysRun():
+async def moneysRun():
     global startTime
     startTime = time.time()
     print("moneysRun()")
 
-    async def main(text):
+    async def main():
         if(len(newsSet) > 1000):
             newsSet.clear()
-        print("moneysRun :: %s" %len(newsSet))
-        print(text)
-        print("===================")
-        bot = telegram.Bot(token=token)
-        await bot.send_message(chat_id, text)
+        await job()
+        # print("thelecRun %s" %len(newsSet))
+        # print(textList)
+        # print(msgQue)
+        # print("===================")
 
     def isKeyword(title):
         if len(list(filter(lambda f: f in title, newsFilter))) > 0:
@@ -44,7 +35,7 @@ def moneysRun():
             return True
         return False
 
-    def job():
+    async def job():
         global recentSubject
         now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
         # if now.hour >= 24 or now.hour <= 6:
@@ -74,20 +65,31 @@ def moneysRun():
                         if(isKeyword(title)) and (not isDup(href)):
                             newsSet.add(href)
                             curTxt = title+"\n"+href+"\n"+list(article.stripped_strings)[1]
-                            asyncio.run(main(curTxt))
+                            msgQue.append(curTxt)
 
+                    # return curList
 
         except requests.exceptions.ConnectionError as e:
             print("ConnectionError occurred:", str(e))
             print("Retrying in 3 seconds...")
-            time.sleep(3)
-            job()
+            asyncio.sleep(3)
+            await main()
 
-    # schedule.every(1).seconds.do(job)
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        except asyncio.futures.TimeoutError as e:
+            print("asyncio TimeoutError:", str(e))
+            asyncio.sleep(3)
+            await main()
 
-    while True:
-        # schedule.run_pending()
-        time.sleep(1)
+        except Exception as e:
+            print("Exception:", str(e))
+            asyncio.sleep(3)
+            await main()
 
-# moneysRun()
+    await main()
+
+# asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+# loop = asyncio.get_event_loop()
+# asyncio.run(moneysRun())
+# loop.run_until_complete(moneysRun())
+# loop.time()
+# loop.close()

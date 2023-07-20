@@ -1,33 +1,24 @@
-import telegram
 import asyncio
-import schedule
 import time
 import sys
 import io
 from bs4 import BeautifulSoup
 import requests
-from resources import filterList
+from resources.filterList import newsFilter, newsSet, msgQue
 import pytz
 import datetime
-from resources.telegramInfo import token, chat_id, bot
 
-newsFilter = filterList.newsFilter
 BASE_URL = "http://www.thebell.co.kr/free/content/Article.asp?svccode=00"
 recentSubject = ""
-newsSet = set()
 
-def thebellRun():
+async def thebellRun():
     global startTime
     startTime = time.time()
     print("thebellRun()")
-    async def main(text):
+    async def main():
         if(len(newsSet) > 1000):
             newsSet.clear()
-        print("thebellRun %s" %len(newsSet))
-        print(text)
-        print("===================")
-        bot = telegram.Bot(token=token)
-        await bot.send_message(chat_id, text)
+        await job()
 
     def isKeyword(title):
         # print(title)
@@ -41,7 +32,7 @@ def thebellRun():
             return True
         return False
 
-    def job():
+    async def job():
         global recentSubject
         now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
         # if now.hour >= 24 or now.hour <= 6:
@@ -80,20 +71,30 @@ def thebellRun():
                         if(isKeyword(title)) and (not isDup(href)):
                             newsSet.add(href)
                             curTxt = title+"\n"+href+content
-                            asyncio.run(main(curTxt))
+                            msgQue.append(curTxt)
 
 
         except requests.exceptions.ConnectionError as e:
             print("ConnectionError occurred:", str(e))
             print("Retrying in 3 seconds...")
-            time.sleep(3)
-            job()
+            asyncio.sleep(3)
+            await main()
 
-    schedule.every(1).seconds.do(job)
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        except asyncio.futures.TimeoutError as e:
+            print("asyncio TimeoutError:", str(e))
+            asyncio.sleep(3)
+            await main()
 
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+        except Exception as e:
+            print("Exception:", str(e))
+            asyncio.sleep(3)
+            await main()
 
-# thebellRun()
+    await main()
+
+# asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+# loop = asyncio.get_event_loop()
+# asyncio.run(thebellRun())
+# loop.run_until_complete(thebellRun())
+# loop.time()
+# loop.close()

@@ -1,39 +1,25 @@
 # -*- coding: utf-8 -*-
-import requests
-import telegram
 import asyncio
-import schedule
 import time
 import sys
 import io
 from bs4 import BeautifulSoup
 import requests
-from resources import filterList
+from resources.filterList import newsFilter, newsSet, msgQue
 import pytz
 import datetime
-import logging
-from multiprocessing import Pool
-from concurrent.futures import ThreadPoolExecutor
-import re
-from resources.telegramInfo import token, chat_id, bot
 
-newsFilter = filterList.newsFilter
 BASE_URL = "https://newsis.com/realnews/"
 recentSubject = ""
-newsSet = set()
 
-def newsisRun():
+async def newsisRun():
     global startTime
     startTime = time.time()
     print("newsisRun()")
-    async def main(text):
+    async def main():
         if(len(newsSet) > 1000):
             newsSet.clear()
-        print("newsisRun %s" %len(newsSet))
-        print(text)
-        print("===================")
-        bot = telegram.Bot(token=token)
-        await bot.send_message(chat_id, text)
+        await job()
 
     def isKeyword(title):
         # print(title)
@@ -47,7 +33,7 @@ def newsisRun():
             return True
         return False
 
-    def job():
+    async def job():
         global recentSubject
         now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
         # if now.hour >= 24 or now.hour <= 6:
@@ -76,15 +62,12 @@ def newsisRun():
                             recentSubject = article
 
                         title = list(article.stripped_strings)[0]
-                        # print(title)
-                        # print(article.select_one('a')['href'])
                         href = "https://newsis.com/"+article.select_one('a')['href']
-                        # print(title+" "+href)
 
                         if(isKeyword(title)) and (not isDup(href)):
                             newsSet.add(href)
                             curTxt = title+"\n"+href
-                            asyncio.run(main(curTxt))
+                            msgQue.append(curTxt)
 
 
         except requests.exceptions.ConnectionError as e:
@@ -93,11 +76,28 @@ def newsisRun():
             time.sleep(3)
             job()
 
-    schedule.every(1).seconds.do(job)
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+        except requests.exceptions.ConnectionError as e:
+            print("ConnectionError occurred:", str(e))
+            print("Retrying in 3 seconds...")
+            asyncio.sleep(3)
+            await main()
 
-# newsisRun()
+        except asyncio.futures.TimeoutError as e:
+            print("asyncio TimeoutError:", str(e))
+            asyncio.sleep(3)
+            await main()
+
+        except Exception as e:
+            print("Exception:", str(e))
+            asyncio.sleep(3)
+            await main()
+
+    await main()
+
+# asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+# loop = asyncio.get_event_loop()
+# asyncio.run(newsisRun())
+# loop.run_until_complete(newsisRun())
+# loop.time()
+# loop.close()

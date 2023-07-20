@@ -1,39 +1,25 @@
-import requests
-import telegram
 import asyncio
-import schedule
 import time
 import sys
 import io
 from bs4 import BeautifulSoup
 import requests
-from resources import filterList
+from resources.filterList import newsFilter, newsSet, msgQue
 import pytz
 import datetime
-import logging
-from multiprocessing import Pool
-from concurrent.futures import ThreadPoolExecutor
-import re
-from resources.telegramInfo import token, chat_id, bot
 
-newsFilter = filterList.newsFilter
 BASE_URL = "https://cbiz.chosun.com/svc/bulletin/index.html"
 recentSubject = ""
-newsSet = set()
 
-def cbizRun():
+async def cbizRun():
     global startTime
     startTime = time.time()
     print("cbizRun()")
 
-    async def main(text):
+    async def main():
         if(len(newsSet) > 1000):
             newsSet.clear()
-        print("cbizRun %s" %len(newsSet))
-        print(text)
-        print("===================")
-        bot = telegram.Bot(token=token)
-        await bot.send_message(chat_id, text)
+        await job()
 
     def isKeyword(title):
         # print(title)
@@ -47,7 +33,7 @@ def cbizRun():
             return True
         return False
 
-    def job():
+    async def job():
         global recentSubject
         now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
         # if now.hour >= 24 or now.hour <= 6:
@@ -76,12 +62,6 @@ def cbizRun():
                             recentSubject = article
 
                         contents = list(article.stripped_strings)
-                        # title = ""
-                        # content = ""
-                        #
-                        # if(len(contents) > 1):
-                        #     content += "\n"+list(article.stripped_strings)[1]
-
                         title = contents[0]
                         href = "https://cbiz.chosun.com"+article.select_one('a')['href']
                         # print(title+" "+href)
@@ -89,20 +69,31 @@ def cbizRun():
                         if(isKeyword(title)) and (not isDup(href)):
                             newsSet.add(href)
                             curTxt = title+"\n"+href
-                            asyncio.run(main(curTxt))
+                            msgQue.append(curTxt)
 
 
         except requests.exceptions.ConnectionError as e:
             print("ConnectionError occurred:", str(e))
             print("Retrying in 3 seconds...")
-            time.sleep(3)
-            job()
+            asyncio.sleep(3)
+            await main()
 
-    schedule.every(1).seconds.do(job)
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        except asyncio.futures.TimeoutError as e:
+            print("asyncio TimeoutError:", str(e))
+            asyncio.sleep(3)
+            await main()
 
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+        except Exception as e:
+            print("Exception:", str(e))
+            asyncio.sleep(3)
+            await main()
 
-# cbizRun()
+    await main()
+
+# asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+# loop = asyncio.get_event_loop()
+# asyncio.run(cbizRun())
+# loop.run_until_complete(cbizRun())
+# loop.time()
+# loop.close()
+

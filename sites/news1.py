@@ -7,34 +7,26 @@ import time
 import sys
 import io
 from bs4 import BeautifulSoup
-import requests
-from resources import filterList
 import pytz
 import datetime
 from selenium.common.exceptions import *
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
-from resources.telegramInfo import token, chat_id, bot
+from resources.filterList import newsFilter, newsSet, msgQue
 
-newsFilter = filterList.newsFilter
 BASE_URL = "https://www.news1.kr/latest/"
 recentSubject = ""
-newsSet = set()
 
-def news1Run():
+async def news1Run():
     global startTime
     startTime = time.time()
     print("news1Run()")
 
-    async def main(text):
+    async def main():
         if(len(newsSet) > 1000):
             newsSet.clear()
-        print("news1Run %s" %len(newsSet))
-        print(text)
-        print("===================")
-        bot = telegram.Bot(token=token)
-        await bot.send_message(chat_id, text)
+        await job()
 
     def isKeyword(title):
         # print(title)
@@ -48,7 +40,7 @@ def news1Run():
             return True
         return False
 
-    def job():
+    async def job():
         global recentSubject, driver, openedWindow
         now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
         # if now.hour >= 24 or now.hour <= 6:
@@ -96,28 +88,40 @@ def news1Run():
                 if(isKeyword(title)) and (not isDup(href)):
                     newsSet.add(href)
                     curTxt = title+"\n"+href
-                    asyncio.run(main(curTxt))
 
+                    msgQue.append(curTxt)
+                    # return curList
 
-        except:
-            if(len(openedWindow) > 0):
-                for win in openedWindow:
-                    driver.switch_to.window(win)
-                    driver.close()
+        except requests.exceptions.ConnectionError as e:
+            print("ConnectionError occurred:", str(e))
+            print("Retrying in 3 seconds...")
+            asyncio.sleep(3)
+            await main()
 
-            print("ConnectionError occurred:")
+        except asyncio.futures.TimeoutError as e:
+            print("asyncio TimeoutError:", str(e))
+            asyncio.sleep(3)
+            await main()
+
+        except Exception as e:
+            for win in openedWindow:
+                driver.switch_to.window(win)
+                driver.close()
+            print("ConnectionError occurred:", str(e))
             print("Retrying in 3 seconds...")
 
             driver.quit()
-            time.sleep(3)
-            job()
+            asyncio.sleep(3)
+            await main()
 
-    schedule.every(1).seconds.do(job)
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
-
-# news1Run()
-
+        driver.quit()
+    await main()
+#
+# asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+# loop = asyncio.get_event_loop()
+# asyncio.run(news1Run())
+# loop.run_until_complete(news1Run())
+# loop.time()
+# loop.close()
+#
+#

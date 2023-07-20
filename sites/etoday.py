@@ -1,37 +1,30 @@
-import certifi
-import telegram
-import ssl
 import asyncio
-import schedule
 import time
 import sys
 import io
 from bs4 import BeautifulSoup
 import requests
-from resources import filterList
+from resources.filterList import newsFilter, newsSet, msgQue
 import pytz
-import datetime
 import re
-from resources.telegramInfo import token, chat_id, bot
+import certifi
+import datetime
 
-newsFilter = filterList.newsFilter
 BASE_URL = "https://www.etoday.co.kr/news/flashnews/flash_list"
 recentSubject = ""
-newsSet = set()
 
-def etodayRun():
+async def etodayRun():
     global startTime
     startTime = time.time()
     print("etodayRun()")
 
-    async def main(text):
+    async def main():
         if(len(newsSet) > 1000):
             newsSet.clear()
-        print("etodayRun :: %s" % len(newsSet))
-        print(text)
-        print("===================")
-        bot = telegram.Bot(token=token)
-        await bot.send_message(chat_id, text)
+        await job()
+        # print("etodayRun :: %s" % len(newsSet))
+        # print(text)
+        # print("===================")
 
     def isKeyword(title):
         # print(title)
@@ -45,7 +38,7 @@ def etodayRun():
             return True
         return False
 
-    def job():
+    async def job():
         global recentSubject
         now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
         # if now.hour >= 24 or now.hour <= 6:
@@ -63,8 +56,6 @@ def etodayRun():
                 if res.status_code == requests.codes.ok:
                     soup = BeautifulSoup(res.text, 'html.parser')
                     articles = soup.select(".flash_tab_txt")
-                    # print(articles)
-                    # articles = resIframe.select("ul > li > .flash_tab_txt t_reduce")
 
                     for article in articles:
                         if article == recentSubject:
@@ -79,23 +70,29 @@ def etodayRun():
                         if(isKeyword(title)) and (not isDup(href)):
                             newsSet.add(href)
                             curTxt = title+"\n"+href
-                            asyncio.run(main(curTxt))
-                            # trio_asyncio.run(main(curTxt))
-        except ssl.SSLWantReadError as e:
-            print(e)
-            return
+                            msgQue.append(curTxt)
 
         except requests.exceptions.ConnectionError as e:
             print("ConnectionError occurred:", str(e))
             print("Retrying in 3 seconds...")
-            time.sleep(3)
-            job()
+            asyncio.sleep(3)
+            await main()
 
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    schedule.every(1).seconds.do(job)
+        except asyncio.futures.TimeoutError as e:
+            print("asyncio TimeoutError:", str(e))
+            asyncio.sleep(3)
+            await main()
 
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+        except Exception as e:
+            print("Exception:", str(e))
+            asyncio.sleep(3)
+            await main()
 
-# etodayRun()
+    await main()
+
+# asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+# loop = asyncio.get_event_loop()
+# asyncio.run(etodayRun())
+# loop.run_until_complete(etodayRun())
+# loop.time()
+# loop.close()

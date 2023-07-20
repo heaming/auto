@@ -1,35 +1,25 @@
 # -*- coding: utf-8 -*-
-import requests
-import telegram
 import asyncio
-import schedule
 import time
 import sys
 import io
 from bs4 import BeautifulSoup
 import requests
-from resources import filterList
+from resources.filterList import newsFilter, newsSet, msgQue
 import pytz
 import datetime
-from resources.telegramInfo import token, chat_id, bot
 
-newsFilter = filterList.newsFilter
 BASE_URL = "https://www.sedaily.com/News/HeadLine/HeadLineListAjax"
 recentSubject = ""
-newsSet = set()
 
-def sedailyRun():
+async def sedailyRun():
     global startTime
     startTime = time.time()
     print("sedailyRun()")
-    async def main(text):
+    async def main():
         if(len(newsSet) > 1000):
             newsSet.clear()
-        print("sedailyRun %s" %len(newsSet))
-        print(text)
-        print("===================")
-        bot = telegram.Bot(token=token)
-        await bot.send_message(chat_id, text)
+        await job()
 
     def isKeyword(title):
         # print(title)
@@ -43,7 +33,7 @@ def sedailyRun():
             return True
         return False
 
-    def job():
+    async def job():
         global recentSubject
         now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
         # if now.hour >= 24 or now.hour <= 6:
@@ -62,12 +52,7 @@ def sedailyRun():
                 if res.status_code == requests.codes.ok:
                     # print(res.encoding)
                     soup = BeautifulSoup(res.text, 'html.parser')
-
-                    # frameSoup = soup.select_one('iframe', '#flash_list')
-                    # iframeUrl = BASE_URL+frame['src']
-                    # resIframe = requests.get(iframeUrl.text, 'html.parser')
                     articles = soup.select(".headline_list > ul > li")
-                    # print(articles)
 
                     for article in articles:
                         if article == recentSubject:
@@ -86,20 +71,30 @@ def sedailyRun():
                         if(isKeyword(title)) and (not isDup(href)):
                             newsSet.add(href)
                             curTxt = title+"\n"+href
-                            asyncio.run(main(curTxt))
+                            msgQue.append(curTxt)
 
 
         except requests.exceptions.ConnectionError as e:
             print("ConnectionError occurred:", str(e))
             print("Retrying in 3 seconds...")
-            time.sleep(3)
-            job()
+            asyncio.sleep(3)
+            await main()
 
-    schedule.every(1).seconds.do(job)
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        except asyncio.futures.TimeoutError as e:
+            print("asyncio TimeoutError:", str(e))
+            asyncio.sleep(3)
+            await main()
 
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+        except Exception as e:
+            print("Exception:", str(e))
+            asyncio.sleep(3)
+            await main()
 
-# sedailyRun()
+    await main()
+
+# asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+# loop = asyncio.get_event_loop()
+# asyncio.run(sedailyRun())
+# loop.run_until_complete(sedailyRun())
+# loop.time()
+# loop.close()

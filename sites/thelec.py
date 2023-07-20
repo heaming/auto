@@ -1,7 +1,4 @@
-import requests
-import telegram
 import asyncio
-import schedule
 import time
 import sys
 import io
@@ -10,11 +7,6 @@ import requests
 from resources.filterList import newsFilter, newsSet, msgQue
 import pytz
 import datetime
-import logging
-from multiprocessing import Pool
-from concurrent.futures import ThreadPoolExecutor
-import re
-from resources.telegramInfo import token, chat_id, bot
 
 BASE_URL = "https://www.thelec.kr/news/articleList.html?view_type=sm"
 recentSubject = ""
@@ -28,15 +20,10 @@ async def thelecRun():
         if(len(newsSet) > 1000):
             newsSet.clear()
         await job()
-        # textList = await job()
-        print("thelecRun %s" %len(newsSet))
+        # print("thelecRun %s" %len(newsSet))
         # print(textList)
-        print(msgQue)
-        print("===================")
-
-        # return text
-        # bot = telegram.Bot(token=token)
-        # await bot.send_message(chat_id, text)
+        # print(msgQue)
+        # print("===================")
 
     def isKeyword(title):
         # print(title)
@@ -105,9 +92,6 @@ async def thelecRun():
             await main()
 
     await main()
-    # schedule.every(1).seconds.do(job)
-    # asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    #
 
 # asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 # loop = asyncio.get_event_loop()

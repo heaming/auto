@@ -30,33 +30,23 @@ global startTime
 async def sendMsg(que):
     if len(que) > 0:
         print("sendMsg")
+        sendedCnt = 0
         while que:
-            msg = que.pop()
-            bot = telegram.Bot(token=token)
-            response = await bot.send_message(chat_id, msg)
-        else:
-            return
-            """ 
-                Returns:
-                    :class:`telegram.Message`: On success, the sent message is returned.
-            """
+            if(sendedCnt < 20):
+                if que:
+                    msg = que.pop()
+                    bot = telegram.Bot(token=token)
+                    response = await bot.send_message(chat_id, msg)
+                    if response:
+                        sendedCnt += 1
+            else:
+                return
+    else:
+        return
 
 async def main():
-    # loop = asyncio.get_event_loop()
-    # tasks = [loop.create_task(runMethod(i)) for i in list]
-    # for response in await asyncio.gather(*tasks):
-    #     print(response)
-    # task1 = asyncio.create_task(thelecRun())
-    # task2 = asyncio.create_task(theguruRun())
-    # result1 = await thelecRun()
-    # result2 = await theguruRun()
-    # print("result1 :: ",result1)
-    # print("result2 :: ",result2)
-    print("얍")
-    methodList = [thelecRun(), theguruRun(), sendMsg(msgQue)]
+    methodList = [thelecRun(), theguruRun(), sendMsg(msgQue),asiaeRun(), cbizRun(), etodayRun(), fnnewsRun(), hankyungRun(), moneysRun(), newsisRun(), newsisRun(), nocutnewsRun(), sedailyRun(), thebellRun(), ynaRun(), yonhapnewstvRun()]
     await asyncio.gather(*methodList)
-    # asyncio.sleep(1)
-    """ test """
 
 def mainHandler():
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -76,33 +66,6 @@ if __name__ == '__main__':
 
     while True:
         schedule.run_pending()
-
-    # start = time.time()
-    # asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    # loop = asyncio.get_event_loop()
-    # res = asyncio.run(main())
-    # loop.run_until_complete(main())
-    # # loop.call_later(1.0, main)
-    # # loop.run_forever()
-    # loop.close()
-    # print(res)
-    # end = time.time()
-    # print(f'time taken: {end - start}')
-
-# if __name__ == "__main__":
-#
-#     print("[start] main.py")
-#     msgQue = Queue()
-#
-#     asyncio.run(main())
-
-
-
-    # methodList = [thelecRun, asiaeRun, yonhapnewstvRun, news1Run, theguruRun, moneysRun, sedailyRun, newsisRun, ynaRun, fnnewsRun, hankyungRun, cbizRun, thebellRun, nocutnewsRun]
-    # with futures.ThreadPoolExecutor(max_workers=5) as executor:
-    #     executor.map(runMethod, methodList)
-
-
 
 # 1.파이썬 언어
 # 2.스케줄링 (구현되어있음) - vscode로 기동해놓으면 앱종료하지 않는이상 계속 뉴스 긁어와야함
