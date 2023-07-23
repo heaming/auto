@@ -9,15 +9,21 @@ import io
 from bs4 import BeautifulSoup
 import pytz
 import datetime
+import tenacity
 from selenium.common.exceptions import *
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from resources.filterList import newsFilter, newsSet, msgQue
 
+
 BASE_URL = "https://www.news1.kr/latest/"
 recentSubject = ""
 
+@tenacity.retry(
+    wait=tenacity.wait_fixed(3), # wait 파라미터 추가
+    stop=tenacity.stop_after_attempt(100),
+)
 async def news1Run():
     global startTime
     startTime = time.time()

@@ -7,10 +7,15 @@ import requests
 from resources.filterList import newsFilter, newsSet, msgQue
 import pytz
 import datetime
+import tenacity
 
 BASE_URL = "http://www.thebell.co.kr/free/content/Article.asp?svccode=00"
 recentSubject = ""
 
+@tenacity.retry(
+    wait=tenacity.wait_fixed(3), # wait 파라미터 추가
+    stop=tenacity.stop_after_attempt(100),
+)
 async def thebellRun():
     global startTime
     startTime = time.time()

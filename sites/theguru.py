@@ -8,11 +8,16 @@ import requests
 from resources.filterList import newsFilter, newsSet, msgQue
 import pytz
 import datetime
+import tenacity
 
 
 BASE_URL = "https://www.theguru.co.kr/news/article_list_all.html"
 recentSubject = ""
 
+@tenacity.retry(
+    wait=tenacity.wait_fixed(3), # wait 파라미터 추가
+    stop=tenacity.stop_after_attempt(100),
+)
 async def theguruRun():
     global startTime
     startTime = time.time()

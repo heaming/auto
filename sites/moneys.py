@@ -7,10 +7,15 @@ import requests
 from resources.filterList import newsFilter, newsSet, msgQue
 import pytz
 import datetime
+import tenacity
 
 BASE_URL = "https://moneys.mt.co.kr/news/mwList.php?code=w0000&code2=w0100"
 recentSubject = ""
 
+@tenacity.retry(
+    wait=tenacity.wait_fixed(3), # wait 파라미터 추가
+    stop=tenacity.stop_after_attempt(100),
+)
 async def moneysRun():
     global startTime
     startTime = time.time()

@@ -11,10 +11,15 @@ from selenium.common.exceptions import *
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
+import tenacity
 
 BASE_URL = "https://www.yonhapnewstv.co.kr/news?ct=1"
 recentSubject = ""
 
+@tenacity.retry(
+    wait=tenacity.wait_fixed(3), # wait 파라미터 추가
+    stop=tenacity.stop_after_attempt(100),
+)
 async def yonhapnewstvRun():
     global startTime
     startTime = time.time()

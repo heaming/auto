@@ -9,10 +9,16 @@ import pytz
 import re
 import certifi
 import datetime
+import tenacity
+
 
 BASE_URL = "https://www.etoday.co.kr/news/flashnews/flash_list"
 recentSubject = ""
 
+@tenacity.retry(
+    wait=tenacity.wait_fixed(3), # wait 파라미터 추가
+    stop=tenacity.stop_after_attempt(100),
+)
 async def etodayRun():
     global startTime
     startTime = time.time()

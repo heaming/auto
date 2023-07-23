@@ -11,9 +11,12 @@ from selenium.common.exceptions import *
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
+import tenacity
+import schedule
 
 BASE_URL = "https://www.asiae.co.kr/realtime/"
 recentSubject = ""
+
 
 async def asiaeRun():
     global startTime
@@ -24,10 +27,10 @@ async def asiaeRun():
         if(len(newsSet) > 1000):
             newsSet.clear()
         await job()
-        # print("thelecRun %s" %len(newsSet))
+        print("asiaeRun %s" %len(newsSet))
         # print(textList)
-        # print(msgQue)
-        # print("===================")
+        print(msgQue)
+        print("===================")
 
     def isKeyword(title):
         # print(title)
@@ -41,6 +44,10 @@ async def asiaeRun():
             return True
         return False
 
+    @tenacity.retry(
+        wait=tenacity.wait_fixed(3), # wait 파라미터 추가
+        stop=tenacity.stop_after_attempt(100),
+    )
     async def job():
         global recentSubject, driver, openedWindow
         now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
@@ -83,7 +90,13 @@ async def asiaeRun():
                 else:
                     recentSubject = article
 
+                writtenAt = list(article.stripped_strings)[0]
                 title = list(article.stripped_strings)[1]
+
+                if(datetime.datetime.strptime(writtenAt, "%H:%M").hour < now.hour):
+                    continue
+                if(datetime.datetime.strptime(writtenAt, "%H:%M").hour == now.hour & datetime.datetime.strptime(writtenAt, "%H:%M").minute < now.minute):
+                    continue
 
                 if(len(list(article.stripped_strings)) > 2):
                     title += list(article.stripped_strings)[2]
@@ -96,9 +109,8 @@ async def asiaeRun():
                     curList.append(curTxt)
                     msgQue.append(curTxt)
 
-            driver.quit()
-
         except Exception as e:
+            print(str(e))
             for win in openedWindow:
                 driver.switch_to.window(win)
                 driver.close()
@@ -111,10 +123,15 @@ async def asiaeRun():
 
     await main()
 
-# # asiaeRun()
-# asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-# loop = asyncio.get_event_loop()
-# asyncio.run(asiaeRun())
-# loop.run_until_complete(asiaeRun())
-# loop.time()
-# loop.close()
+# asiaeRun()
+def mainHandler():
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    loop = asyncio.get_event_loop()
+    asyncio.run(asiaeRun())
+    loop.run_until_complete(asiaeRun())
+    loop.time()
+
+schedule.every(1).seconds.do(mainHandler)
+
+while True:
+    schedule.run_pending()
