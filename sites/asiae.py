@@ -94,9 +94,9 @@ async def asiaeRun():
                 title = list(article.stripped_strings)[1]
 
                 if(datetime.datetime.strptime(writtenAt, "%H:%M").hour < now.hour):
-                    continue
+                    break
                 if(datetime.datetime.strptime(writtenAt, "%H:%M").hour == now.hour & datetime.datetime.strptime(writtenAt, "%H:%M").minute < now.minute):
-                    continue
+                    break
 
                 if(len(list(article.stripped_strings)) > 2):
                     title += list(article.stripped_strings)[2]

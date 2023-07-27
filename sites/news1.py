@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import re
+
 import requests
 import telegram
 import asyncio
@@ -20,10 +22,6 @@ from resources.filterList import newsFilter, newsSet, msgQue
 BASE_URL = "https://www.news1.kr/latest/"
 recentSubject = ""
 
-@tenacity.retry(
-    wait=tenacity.wait_fixed(3), # wait 파라미터 추가
-    stop=tenacity.stop_after_attempt(100),
-)
 async def news1Run():
     global startTime
     startTime = time.time()
@@ -46,6 +44,10 @@ async def news1Run():
             return True
         return False
 
+    @tenacity.retry(
+        wait=tenacity.wait_fixed(3), # wait 파라미터 추가
+        stop=tenacity.stop_after_attempt(100),
+    )
     async def job():
         global recentSubject, driver, openedWindow
         now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
@@ -86,7 +88,13 @@ async def news1Run():
                 else:
                     recentSubject = article
 
-                title = list(article.stripped_strings)[0]
+                contents = list(article.stripped_strings)
+                writtenAt = contents[len(contents)-2]
+
+                if(len(re.match(r'[0-9]초전', '', writtenAt)) <= 0 & len(re.match('1분전')) <= 0):
+                    break
+
+                title = contents[0]
 
                 href = "https://www.news1.kr"+article.select_one('a')['href']
                 # print(title+" "+href)
@@ -122,12 +130,15 @@ async def news1Run():
 
         driver.quit()
     await main()
-#
-# asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-# loop = asyncio.get_event_loop()
-# asyncio.run(news1Run())
-# loop.run_until_complete(news1Run())
-# loop.time()
-# loop.close()
-#
-#
+
+def mainHandler():
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    loop = asyncio.get_event_loop()
+    asyncio.run(news1Run())
+    loop.run_until_complete(news1Run())
+    loop.time()
+
+schedule.every(1).seconds.do(mainHandler)
+
+while True:
+    schedule.run_pending()

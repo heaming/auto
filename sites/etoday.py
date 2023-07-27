@@ -2,6 +2,8 @@ import asyncio
 import time
 import sys
 import io
+
+import schedule
 from bs4 import BeautifulSoup
 import requests
 from resources.filterList import newsFilter, newsSet, msgQue
@@ -15,10 +17,6 @@ import tenacity
 BASE_URL = "https://www.etoday.co.kr/news/flashnews/flash_list"
 recentSubject = ""
 
-@tenacity.retry(
-    wait=tenacity.wait_fixed(3), # wait 파라미터 추가
-    stop=tenacity.stop_after_attempt(100),
-)
 async def etodayRun():
     global startTime
     startTime = time.time()
@@ -44,6 +42,10 @@ async def etodayRun():
             return True
         return False
 
+    @tenacity.retry(
+        wait=tenacity.wait_fixed(3), # wait 파라미터 추가
+        stop=tenacity.stop_after_attempt(100),
+    )
     async def job():
         global recentSubject
         now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
@@ -61,7 +63,7 @@ async def etodayRun():
 
                 if res.status_code == requests.codes.ok:
                     soup = BeautifulSoup(res.text, 'html.parser')
-                    articles = soup.select(".flash_tab_txt")
+                    articles = soup.select(".flash_tab_lst > ul > li")
 
                     for article in articles:
                         if article == recentSubject:
@@ -69,7 +71,15 @@ async def etodayRun():
                         else:
                             recentSubject = article
 
-                        title = list(article.stripped_strings)[0]
+                        contents = list(article.stripped_strings)
+                        title = contents[0]
+                        writtenAt = contents[1]
+
+                        if(datetime.datetime.strptime(writtenAt, "%H:%M").hour < now.hour):
+                            break
+                        if(datetime.datetime.strptime(writtenAt, "%H:%M").hour == now.hour & datetime.datetime.strptime(writtenAt, "%H:%M").minute < now.minute):
+                            break
+
                         href = "https://www.etoday.co.kr/news/view/"+re.sub(r'[^0-9]', '', article.select_one('a')['href'])
                         # print(title+" "+href)
 
@@ -96,9 +106,15 @@ async def etodayRun():
 
     await main()
 
-# asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-# loop = asyncio.get_event_loop()
-# asyncio.run(etodayRun())
-# loop.run_until_complete(etodayRun())
-# loop.time()
-# loop.close()
+# def mainHandler():
+#     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+#     loop = asyncio.get_event_loop()
+#     asyncio.run(etodayRun())
+#     loop.run_until_complete(etodayRun())
+#     loop.time()
+#
+# schedule.every(1).seconds.do(mainHandler)
+#
+# while True:
+#     schedule.run_pending()
+

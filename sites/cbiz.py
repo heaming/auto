@@ -2,6 +2,8 @@ import asyncio
 import time
 import sys
 import io
+
+import schedule
 from bs4 import BeautifulSoup
 import requests
 from resources.filterList import newsFilter, newsSet, msgQue
@@ -12,10 +14,6 @@ import tenacity
 BASE_URL = "https://cbiz.chosun.com/svc/bulletin/index.html"
 recentSubject = ""
 
-@tenacity.retry(
-    wait=tenacity.wait_fixed(3), # wait 파라미터 추가
-    stop=tenacity.stop_after_attempt(100),
-)
 async def cbizRun():
     global startTime
     startTime = time.time()
@@ -38,6 +36,10 @@ async def cbizRun():
             return True
         return False
 
+    @tenacity.retry(
+        wait=tenacity.wait_fixed(3), # wait 파라미터 추가
+        stop=tenacity.stop_after_attempt(100),
+    )
     async def job():
         global recentSubject
         now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
@@ -60,14 +62,20 @@ async def cbizRun():
                     articles = soup.select(".article_list > ul > li")
 
                     for article in articles:
-                        # print(article)
                         if article == recentSubject:
                             break
                         else:
                             recentSubject = article
 
                         contents = list(article.stripped_strings)
+                        writtenAt = contents[1]
                         title = contents[0]
+
+                        if(datetime.datetime.strptime(writtenAt, "%H:%M").hour < now.hour):
+                            break
+                        if(datetime.datetime.strptime(writtenAt, "%H:%M").hour == now.hour & datetime.datetime.strptime(writtenAt, "%H:%M").minute < now.minute):
+                            break
+
                         href = "https://cbiz.chosun.com"+article.select_one('a')['href']
                         # print(title+" "+href)
 
@@ -95,10 +103,16 @@ async def cbizRun():
 
     await main()
 
-# asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-# loop = asyncio.get_event_loop()
-# asyncio.run(cbizRun())
-# loop.run_until_complete(cbizRun())
-# loop.time()
-# loop.close()
+# def mainHandler():
+#     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+#     loop = asyncio.get_event_loop()
+#     asyncio.run(cbizRun())
+#     loop.run_until_complete(cbizRun())
+#     loop.time()
+#
+# schedule.every(1).seconds.do(mainHandler)
+#
+# while True:
+#     schedule.run_pending()
+
 
