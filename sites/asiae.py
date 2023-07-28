@@ -17,7 +17,10 @@ import schedule
 BASE_URL = "https://www.asiae.co.kr/realtime/"
 recentSubject = ""
 
-
+@tenacity.retry(
+    wait=tenacity.wait_fixed(3), # wait 파라미터 추가
+    stop=tenacity.stop_after_attempt(100),
+)
 async def asiaeRun():
     global startTime
     startTime = time.time()
@@ -124,14 +127,14 @@ async def asiaeRun():
     await main()
 
 # asiaeRun()
-def mainHandler():
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    loop = asyncio.get_event_loop()
-    asyncio.run(asiaeRun())
-    loop.run_until_complete(asiaeRun())
-    loop.time()
-
-schedule.every(1).seconds.do(mainHandler)
-
-while True:
-    schedule.run_pending()
+# def mainHandler():
+#     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+#     loop = asyncio.get_event_loop()
+#     asyncio.run(asiaeRun())
+#     loop.run_until_complete(asiaeRun())
+#     loop.time()
+#
+# schedule.every(1).seconds.do(mainHandler)
+#
+# while True:
+#     schedule.run_pending()

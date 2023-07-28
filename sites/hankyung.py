@@ -14,6 +14,10 @@ import tenacity
 BASE_URL = "https://www.hankyung.com/all-news"
 recentSubject = ""
 
+@tenacity.retry(
+    wait=tenacity.wait_fixed(3), # wait 파라미터 추가
+    stop=tenacity.stop_after_attempt(100),
+)
 async def hankyungRun():
     global startTime
     startTime = time.time()

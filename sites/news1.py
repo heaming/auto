@@ -22,6 +22,10 @@ from resources.filterList import newsFilter, newsSet, msgQue
 BASE_URL = "https://www.news1.kr/latest/"
 recentSubject = ""
 
+@tenacity.retry(
+    wait=tenacity.wait_fixed(3), # wait 파라미터 추가
+    stop=tenacity.stop_after_attempt(100),
+)
 async def news1Run():
     global startTime
     startTime = time.time()
@@ -89,10 +93,13 @@ async def news1Run():
                     recentSubject = article
 
                 contents = list(article.stripped_strings)
-                writtenAt = contents[len(contents)-2]
-
-                if(len(re.match(r'[0-9]초전', '', writtenAt)) <= 0 & len(re.match('1분전')) <= 0):
-                    break
+                # writtenAt = contents[len(contents)-2]
+                # print(writtenAt)
+                #
+                # if(len(re.match(r'[0-9]초전', '', writtenAt)) <= 0 & len(re.match('1분전')) <= 0):
+                #     print(len(re.match(r'[0-9]초전', '', writtenAt)))
+                #     print(len(re.match('1분전')))
+                #     continue
 
                 title = contents[0]
 
@@ -131,14 +138,14 @@ async def news1Run():
         driver.quit()
     await main()
 
-def mainHandler():
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    loop = asyncio.get_event_loop()
-    asyncio.run(news1Run())
-    loop.run_until_complete(news1Run())
-    loop.time()
-
-schedule.every(1).seconds.do(mainHandler)
-
-while True:
-    schedule.run_pending()
+# def mainHandler():
+#     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+#     loop = asyncio.get_event_loop()
+#     asyncio.run(news1Run())
+#     loop.run_until_complete(news1Run())
+#     loop.time()
+#
+# schedule.every(1).seconds.do(mainHandler)
+#
+# while True:
+#     schedule.run_pending()

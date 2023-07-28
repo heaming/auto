@@ -53,6 +53,10 @@ async def theguruRun():
             return True
         return False
 
+    @tenacity.retry(
+        wait=tenacity.wait_fixed(3), # wait 파라미터 추가
+        stop=tenacity.stop_after_attempt(100),
+    )
     async def job():
         global recentSubject
         now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
@@ -79,7 +83,18 @@ async def theguruRun():
                         else:
                             recentSubject = article
 
-                        title = list(article.stripped_strings)[0]
+                        contents = list(article.stripped_strings)
+                        writtenAt = contents[len(contents)-1]
+
+                        if(datetime.datetime.strptime(writtenAt, "%H:%M:%S").hour < now.hour):
+                            # print(writtenAt)
+                            break
+                        if (datetime.datetime.strptime(writtenAt, "%H:%M:%S").hour == now.hour & datetime.datetime.strptime(writtenAt, "%H:%M:%S").minute < now.minute):
+                            # print(writtenAt)
+                            break
+
+                        # print(contents)
+                        title = contents[0]
                         href = "https://www.theguru.co.kr"+article.select_one('a')['href']
                         # print(title+" "+href)
 
@@ -108,18 +123,16 @@ async def theguruRun():
             await main()
 
     await main()
-    # schedule.every(1).seconds.do(job)
-    # asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-    # while True:
-    #     # schedule.run_pending()
-    #     asyncio.sleep(1)
-# asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-# loop = asyncio.get_event_loop()
-
-
-# asyncio.run(theguruRun())
-# loop.run_forever()
-# loop.run_until_complete(theguruRun())
-# loop.close()
+# def mainHandler():
+#     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+#     loop = asyncio.get_event_loop()
+#     asyncio.run(theguruRun())
+#     loop.run_until_complete(theguruRun())
+#     loop.time()
+#
+# schedule.every(1).seconds.do(mainHandler)
+#
+# while True:
+#     schedule.run_pending()
 

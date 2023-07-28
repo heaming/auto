@@ -2,6 +2,8 @@ import asyncio
 import time
 import sys
 import io
+
+import schedule
 from bs4 import BeautifulSoup
 import requests
 from resources.filterList import newsFilter, newsSet, msgQue
@@ -37,6 +39,10 @@ async def nocutnewsRun():
             return True
         return False
 
+    @tenacity.retry(
+        wait=tenacity.wait_fixed(3), # wait 파라미터 추가
+        stop=tenacity.stop_after_attempt(100),
+    )
     async def job():
         global recentSubject
         now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
@@ -65,6 +71,17 @@ async def nocutnewsRun():
                         contents = list(article.stripped_strings)
                         title = ""
                         content = ""
+
+                        temp = contents[len(contents)-1].split(" ")
+                        writtenAt = temp[len(temp)-1]
+                        # print(writtenAt)
+
+                        if(datetime.datetime.strptime(writtenAt, "%I:%M:%S").hour < now.hour):
+                            # print(writtenAt)
+                            break
+                        if (datetime.datetime.strptime(writtenAt, "%I:%M:%S").hour == now.hour & datetime.datetime.strptime(writtenAt, "%I:%M:%S").minute < now.minute):
+                            # print(writtenAt)
+                            break
 
                         if(len(contents) > 1):
                             content += "\n"+list(article.stripped_strings)[1]
@@ -97,9 +114,14 @@ async def nocutnewsRun():
 
     await main()
 
-# asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-# loop = asyncio.get_event_loop()
-# asyncio.run(nocutnewsRun())
-# loop.run_until_complete(nocutnewsRun())
-# loop.time()
-# loop.close()
+# def mainHandler():
+#     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+#     loop = asyncio.get_event_loop()
+#     asyncio.run(nocutnewsRun())
+#     loop.run_until_complete(nocutnewsRun())
+#     loop.time()
+#
+# schedule.every(1).seconds.do(mainHandler)
+#
+# while True:
+#     schedule.run_pending()

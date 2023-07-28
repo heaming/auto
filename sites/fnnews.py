@@ -110,14 +110,14 @@ async def fnnewsRun():
 
     await main()
 
-def mainHandler():
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    loop = asyncio.get_event_loop()
-    asyncio.run(fnnewsRun())
-    loop.run_until_complete(fnnewsRun())
-    loop.time()
-
-schedule.every(1).seconds.do(mainHandler)
-
-while True:
-    schedule.run_pending()
+# def mainHandler():
+#     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+#     loop = asyncio.get_event_loop()
+#     asyncio.run(fnnewsRun())
+#     loop.run_until_complete(fnnewsRun())
+#     loop.time()
+#
+# schedule.every(1).seconds.do(mainHandler)
+#
+# while True:
+#     schedule.run_pending()

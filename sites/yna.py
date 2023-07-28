@@ -2,6 +2,8 @@ import asyncio
 import time
 import sys
 import io
+
+import schedule
 from bs4 import BeautifulSoup
 import requests
 from resources.filterList import newsFilter, newsSet, msgQue
@@ -24,6 +26,7 @@ async def ynaRun():
     async def main():
         if(len(newsSet) > 1000):
             newsSet.clear()
+        print(msgQue)
         await job()
 
     def isKeyword(title):
@@ -38,6 +41,10 @@ async def ynaRun():
             return True
         return False
 
+    @tenacity.retry(
+        wait=tenacity.wait_fixed(3), # wait 파라미터 추가
+        stop=tenacity.stop_after_attempt(100),
+    )
     async def job():
         global recentSubject
         now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
@@ -55,17 +62,26 @@ async def ynaRun():
                 if res.status_code == requests.codes.ok:
                     soup = BeautifulSoup(res.text, 'html.parser')
 
-                    # print(soup)
-                    # frameSoup = soup.select_one('iframe', '#flash_list')
-                    # iframeUrl = BASE_URL+frame['src']
-                    # resIframe = requests.get(iframeUrl.text, 'html.parser')
                     articles = soup.select(".list > li > div > .news-con")
+                    times = soup.select(".list > li > div > div > .txt-time")
 
-                    for article in articles:
+                    for i in range(len(articles)):
+
+                        article = articles[i]
+                        # print(article)
+                        writtenAt = list(times[i].stripped_strings)[0]
+
                         if article == recentSubject:
                             break
                         else:
                             recentSubject = article
+
+                        if(datetime.datetime.strptime(writtenAt, "%m-%d %H:%M").hour < now.hour):
+                            # print(writtenAt)
+                            break
+                        if (datetime.datetime.strptime(writtenAt, "%m-%d %H:%M").hour == now.hour & datetime.datetime.strptime(writtenAt, "%m-%d %H:%M").minute-2 < now.minute):
+                            # print(writtenAt)
+                            break
 
                         contents = list(article.stripped_strings)
                         title = ""
@@ -102,9 +118,14 @@ async def ynaRun():
 
     await main()
 
-# asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-# loop = asyncio.get_event_loop()
-# asyncio.run(ynaRun())
-# loop.run_until_complete(ynaRun())
-# loop.time()
-# loop.close()
+# def mainHandler():
+#     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+#     loop = asyncio.get_event_loop()
+#     asyncio.run(ynaRun())
+#     loop.run_until_complete(ynaRun())
+#     loop.time()
+#
+# schedule.every(1).seconds.do(mainHandler)
+#
+# while True:
+#     schedule.run_pending()

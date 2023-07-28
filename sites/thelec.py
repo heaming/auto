@@ -2,6 +2,8 @@ import asyncio
 import time
 import sys
 import io
+
+import schedule
 from bs4 import BeautifulSoup
 import requests
 from resources.filterList import newsFilter, newsSet, msgQue
@@ -25,10 +27,10 @@ async def thelecRun():
         if(len(newsSet) > 1000):
             newsSet.clear()
         await job()
-        # print("thelecRun %s" %len(newsSet))
+        print("thelecRun %s" %len(newsSet))
         # print(textList)
-        # print(msgQue)
-        # print("===================")
+        print(msgQue)
+        print("===================")
 
     def isKeyword(title):
         # print(title)
@@ -42,6 +44,10 @@ async def thelecRun():
             return True
         return False
 
+    @tenacity.retry(
+        wait=tenacity.wait_fixed(3), # wait 파라미터 추가
+        stop=tenacity.stop_after_attempt(100),
+    )
     async def job():
         global recentSubject
         now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
@@ -53,7 +59,6 @@ async def thelecRun():
 
         try:
             print("------[thelec] %s ------" %(time.time() - startTime))
-            curList = []
 
             with requests.Session() as s:
                 res = s.get(BASE_URL, headers={'User-Agent': 'Mozilla/5.0'})
@@ -68,17 +73,24 @@ async def thelecRun():
                         else:
                             recentSubject = article
 
-                        title = list(article.stripped_strings)[0]
+                        contents = list(article.stripped_strings)
+                        writtenAt = contents[len(contents)-1]
+
+                        if(datetime.datetime.strptime(writtenAt, "| %Y-%m-%d %H:%M").hour < now.hour):
+                            break
+                        if(datetime.datetime.strptime(writtenAt, "| %Y-%m-%d %H:%M").hour == now.hour & datetime.datetime.strptime(writtenAt, "| %Y-%m-%d %H:%M").minute < now.minute):
+                            break
+                            print(writtenAt)
+
+                        title = contents[0]
                         href = "https://www.thelec.kr"+article.select_one('a')['href']
                         # print(title+" "+href)
 
                         if(isKeyword(title)) and (not isDup(href)):
                             newsSet.add(href)
                             curTxt = title+"\n"+href
-                            curList.append(curTxt)
                             msgQue.append(curTxt)
 
-                    # return curList
 
         except requests.exceptions.ConnectionError as e:
             print("ConnectionError occurred:", str(e))
@@ -98,9 +110,14 @@ async def thelecRun():
 
     await main()
 
-# asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-# loop = asyncio.get_event_loop()
-# asyncio.run(thelecRun())
-# loop.run_until_complete(thelecRun())
-# loop.time()
-# loop.close()
+# def mainHandler():
+#     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+#     loop = asyncio.get_event_loop()
+#     asyncio.run(thelecRun())
+#     loop.run_until_complete(thelecRun())
+#     loop.time()
+#
+# schedule.every(1).seconds.do(mainHandler)
+#
+# while True:
+#     schedule.run_pending()

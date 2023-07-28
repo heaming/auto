@@ -31,15 +31,14 @@ global startTime
 global retrySeconds
 retrySeconds = 10
 
-# def throw_error():
-#     raise ValueError(f"retry in {} seconds")
 @tenacity.retry(
     wait=tenacity.wait_fixed(retrySeconds), # wait 파라미터 추가
     stop=tenacity.stop_after_attempt(100),
 )
 async def sendMsg(que):
     if len(que) > 0:
-        print("sendMsg")
+        print("sendMsg :: ")
+        print(que)
         sendedCnt = 0
         while que:
             try:
@@ -58,9 +57,16 @@ async def sendMsg(que):
     else:
         return
 
+async def sendMsgHandler():
+    try:
+        await sendMsg(msgQue)
+    except Exception as e:
+        print(str(e))
+
 async def main():
-    methodList = [thelecRun(), theguruRun(), sendMsg(msgQue),asiaeRun(), cbizRun(), etodayRun(), fnnewsRun(), hankyungRun(), moneysRun(), newsisRun(), newsisRun(), nocutnewsRun(), sedailyRun(), thebellRun(), ynaRun(), yonhapnewstvRun()]
+    methodList = [thelecRun(), theguruRun(), asiaeRun(), cbizRun(), etodayRun(), fnnewsRun(), hankyungRun(), moneysRun(), newsisRun(), newsisRun(), nocutnewsRun(), sedailyRun(), thebellRun(), ynaRun(), yonhapnewstvRun()]
     await asyncio.gather(*methodList)
+    await sendMsgHandler()
 
 def mainHandler():
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -77,6 +83,7 @@ if __name__ == '__main__':
     print("[__main__] start")
     start = time.time()
     schedule.every(1).seconds.do(mainHandler)
+    # schedule.every(1).seconds.do(sendMsgHandler)
 
     while True:
         schedule.run_pending()
