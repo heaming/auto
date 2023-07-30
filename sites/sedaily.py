@@ -3,7 +3,7 @@ import asyncio
 import time
 import sys
 import io
-
+import aiohttp
 import schedule
 from bs4 import BeautifulSoup
 import requests
@@ -11,6 +11,7 @@ from resources.filterList import newsFilter, newsSet, msgQue
 import pytz
 import datetime
 import tenacity
+from resources.sessionInfo import headers
 
 BASE_URL = "https://www.sedaily.com/News/HeadLine/HeadLineListAjax"
 recentSubject = ""
@@ -26,6 +27,7 @@ async def sedailyRun():
     async def main():
         if(len(newsSet) > 1000):
             newsSet.clear()
+        print(msgQue)
         await job()
 
     def isKeyword(title):
@@ -55,53 +57,50 @@ async def sedailyRun():
 
         try:
             print("------[sedaily] %s ------" %(time.time() - startTime))
-            with requests.Session() as s:
-                res = s.get(BASE_URL, headers={'User-Agent': 'Mozilla/5.0'})
-                res.raise_for_status()
-                res.encoding = None #ISO-8859-1 처리
+            async with aiohttp.ClientSession(headers=headers) as session:
+                async with session.get(BASE_URL) as res:
+                    if res.status == 200:
+                        resText = await res.text(encoding=None)
+                        soup = BeautifulSoup(resText, 'html.parser')
+                        articles = soup.select(".headline_list > ul > li")
 
-                if res.status_code == requests.codes.ok:
-                    # print(res.encoding)
-                    soup = BeautifulSoup(res.text, 'html.parser')
-                    articles = soup.select(".headline_list > ul > li")
+                        for article in articles:
+                            if article == recentSubject:
+                                break
+                            else:
+                                recentSubject = article
 
-                    for article in articles:
-                        if article == recentSubject:
-                            break
-                        else:
-                            recentSubject = article
+                            contents = list(article.stripped_strings)
+                            writtenAt = contents[len(contents)-1]
 
-                        contents = list(article.stripped_strings)
-                        writtenAt = contents[len(contents)-1]
+                            # if(datetime.datetime.strptime(writtenAt, "%m-%d %H:%M").hour < now.hour):
+                            #     # print(writtenAt)
+                            #     break
+                            # if (datetime.datetime.strptime(writtenAt, "%m-%d %H:%M").hour == now.hour & datetime.datetime.strptime(writtenAt, "%m-%d %H:%M").minute < now.minute):
+                            #     # print(writtenAt)
+                            #     break
 
-                        if(datetime.datetime.strptime(writtenAt, "%m-%d %H:%M").hour < now.hour):
-                            # print(writtenAt)
-                            break
-                        if (datetime.datetime.strptime(writtenAt, "%m-%d %H:%M").hour == now.hour & datetime.datetime.strptime(writtenAt, "%m-%d %H:%M").minute < now.minute):
-                            # print(writtenAt)
-                            break
+                            title = contents[0]
 
-                        title = contents[0]
+                            nId = article.select_one('a')['href'].replace("javascript:NewsView(\'", '').replace("\');", '')
 
-                        nId = article.select_one('a')['href'].replace("javascript:NewsView(\'", '').replace("\');", '')
+                            href = "https://www.sedaily.com/News/HeadLine/HeadLineViewAjax?Nid="+nId #+"&NClass=AL&Keyword=&HeadLineTime=1"
+                            # print(title+" "+href)
 
-                        href = "https://www.sedaily.com/News/HeadLine/HeadLineViewAjax?Nid="+nId+"&NClass=AL&Keyword=&HeadLineTime=1"
-                        # print(title+" "+href)
+                            if(isKeyword(title)) and (not isDup(href)):
+                                newsSet.add(href)
+                                curTxt = title+"\n"+href
+                                msgQue.append(curTxt)
 
-                        if(isKeyword(title)) and (not isDup(href)):
-                            newsSet.add(href)
-                            curTxt = title+"\n"+href
-                            msgQue.append(curTxt)
-
-
-        except requests.exceptions.ConnectionError as e:
-            print("ConnectionError occurred:", str(e))
+        except aiohttp.ClientError as e:
+            print("ClientError occurred:", str(e))
             print("Retrying in 3 seconds...")
             asyncio.sleep(3)
             await main()
 
         except asyncio.futures.TimeoutError as e:
             print("asyncio TimeoutError:", str(e))
+            print("Retrying in 3 seconds...")
             asyncio.sleep(3)
             await main()
 

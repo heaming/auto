@@ -109,7 +109,6 @@ async def asiaeRun():
                 if(isKeyword(title)) and (not isDup(href)):
                     newsSet.add(href)
                     curTxt = title+"\n"+href
-                    curList.append(curTxt)
                     msgQue.append(curTxt)
 
         except Exception as e:

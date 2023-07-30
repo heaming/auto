@@ -1,12 +1,12 @@
 import threading
 import re
 import schedule
+from multiprocessing import Process, Value, Pool, Queue
 import asyncio
 import telegram
 import time
 import tenacity
 from concurrent import futures
-from queue import Queue
 from multiprocessing import Pool
 from sites.moneys import moneysRun
 from sites.etoday import etodayRun
@@ -31,24 +31,27 @@ global startTime
 global retrySeconds
 retrySeconds = 10
 
+
+
 @tenacity.retry(
     wait=tenacity.wait_fixed(retrySeconds), # wait 파라미터 추가
     stop=tenacity.stop_after_attempt(100),
 )
-async def sendMsg(que):
-    if len(que) > 0:
-        print("sendMsg :: ")
-        print(que)
+async def sendMsg(msgQue):
+    print("sendMsg :: ")
+    if len(msgQue) > 0:
+        print(list(msgQue))
         sendedCnt = 0
         while que:
             try:
                 if(sendedCnt < 20):
                     if que:
                         msg = que.pop()
-                        bot = telegram.Bot(token=token)
-                        response = await bot.send_message(chat_id, msg)
+                        bot = await telegram.Bot(token=token)
+                        response = bot.send_message(chat_id, msg)
                         if response:
                             sendedCnt += 1
+
                 else:
                     return
             except telegram.error.RetryAfter as e:
@@ -57,36 +60,53 @@ async def sendMsg(que):
     else:
         return
 
-async def sendMsgHandler():
-    try:
-        await sendMsg(msgQue)
-    except Exception as e:
-        print(str(e))
+def sendMsgHandler():
+    q = Queue()
+    asyncio.run(sendMsg(msgQue))
 
-async def main():
+def sendMsgWorker():
+    schedule.every(1).seconds.do(sendMsgHandler)
+    while True:
+        schedule.run_pending()
+
+async def getNews():
     methodList = [thelecRun(), theguruRun(), asiaeRun(), cbizRun(), etodayRun(), fnnewsRun(), hankyungRun(), moneysRun(), newsisRun(), newsisRun(), nocutnewsRun(), sedailyRun(), thebellRun(), ynaRun(), yonhapnewstvRun()]
     await asyncio.gather(*methodList)
-    await sendMsgHandler()
+    # await sendMsgHandler()
 
-def mainHandler():
+def getNewsHandler():
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     loop = asyncio.get_event_loop()
-    res = asyncio.run(main())
-    loop.run_until_complete(main())
+    loop.run_until_complete(getNews())
     # loop.run_forever()
     loop.close()
-    print(res)
     end = time.time()
     print(f'time taken: {end - start}')
+
+def getNewsWorker():
+    schedule.every(1).seconds.do(getNewsHandler)
+    while True:
+        schedule.run_pending()
+
+def runMethod(method):
+    method()
+def main():
+    methodList = [getNewsWorker, sendMsgWorker]
+    shareValue = Value()
+    pool = Pool(processes=5)
+    pool.map(runMethod, methodList)
+
 
 if __name__ == '__main__':
     print("[__main__] start")
     start = time.time()
-    schedule.every(1).seconds.do(mainHandler)
+    main()
+
+    # schedule.every(1).seconds.do()
     # schedule.every(1).seconds.do(sendMsgHandler)
 
-    while True:
-        schedule.run_pending()
+    # while True:
+    #     schedule.run_pending()
 
 # 1.파이썬 언어
 # 2.스케줄링 (구현되어있음) - vscode로 기동해놓으면 앱종료하지 않는이상 계속 뉴스 긁어와야함

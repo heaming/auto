@@ -101,7 +101,7 @@ async def theguruRun():
                         if(isKeyword(title)) and (not isDup(href)):
                             newsSet.add(href)
                             curTxt = title+"\n"+href
-                            curList.append(curTxt)
+                            # curList.append(curTxt)
                             msgQue.append(curTxt)
 
                     # return curList
