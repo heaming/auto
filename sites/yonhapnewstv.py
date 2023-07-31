@@ -6,7 +6,7 @@ import io
 import schedule
 from bs4 import BeautifulSoup
 import requests
-from resources.filterList import newsFilter, newsSet, msgQue
+from resources.filterList import newsFilter, newsSet
 import pytz
 import datetime
 from selenium.common.exceptions import *
@@ -22,7 +22,7 @@ recentSubject = ""
     wait=tenacity.wait_fixed(3), # wait 파라미터 추가
     stop=tenacity.stop_after_attempt(100),
 )
-async def yonhapnewstvRun():
+async def yonhapnewstvRun(msgQue):
     global startTime
     startTime = time.time()
     print("yonhapnewstvRun()")
@@ -30,6 +30,7 @@ async def yonhapnewstvRun():
     async def main():
         if(len(newsSet) > 1000):
             newsSet.clear()
+        print(msgQue.qsize())
         await job()
 
     def isKeyword(title):
@@ -111,7 +112,8 @@ async def yonhapnewstvRun():
                 if(isKeyword(title)) and (not isDup(href)):
                     newsSet.add(href)
                     curTxt = title+"\n"+href+content
-                    msgQue.append(curTxt)
+                    msgQue.put(curTxt)
+                    # msgQue.append(curTxt)
 
             driver.quit()
 

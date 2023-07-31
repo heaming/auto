@@ -16,7 +16,7 @@ from selenium.common.exceptions import *
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
-from resources.filterList import newsFilter, newsSet, msgQue
+from resources.filterList import newsFilter, newsSet
 
 
 BASE_URL = "https://www.news1.kr/latest/"
@@ -26,7 +26,7 @@ recentSubject = ""
     wait=tenacity.wait_fixed(3), # wait 파라미터 추가
     stop=tenacity.stop_after_attempt(100),
 )
-async def news1Run():
+async def news1Run(msgQue):
     global startTime
     startTime = time.time()
     print("news1Run()")
@@ -109,8 +109,8 @@ async def news1Run():
                 if(isKeyword(title)) and (not isDup(href)):
                     newsSet.add(href)
                     curTxt = title+"\n"+href
-
-                    msgQue.append(curTxt)
+                    msgQue.put(curTxt)
+                    # msgQue.append(curTxt)
                     # return curList
 
         except requests.exceptions.ConnectionError as e:

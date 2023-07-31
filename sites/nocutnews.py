@@ -6,7 +6,7 @@ import io
 import schedule
 from bs4 import BeautifulSoup
 import requests
-from resources.filterList import newsFilter, newsSet, msgQue
+from resources.filterList import newsFilter, newsSet
 import pytz
 import datetime
 import tenacity
@@ -18,7 +18,7 @@ recentSubject = ""
     wait=tenacity.wait_fixed(3), # wait 파라미터 추가
     stop=tenacity.stop_after_attempt(100),
 )
-async def nocutnewsRun():
+async def nocutnewsRun(msgQue):
     global startTime
     startTime = time.time()
     print("nocutnewsRun()")
@@ -93,7 +93,8 @@ async def nocutnewsRun():
                         if(isKeyword(title)) and (not isDup(href)):
                             newsSet.add(href)
                             curTxt = title+"\n"+href+content
-                            msgQue.append(curTxt)
+                            msgQue.put(curTxt)
+                            # msgQue.append(curTxt)
 
 
         except requests.exceptions.ConnectionError as e:

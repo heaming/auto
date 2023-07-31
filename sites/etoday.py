@@ -6,7 +6,7 @@ import io
 import schedule
 from bs4 import BeautifulSoup
 import requests
-from resources.filterList import newsFilter, newsSet, msgQue
+from resources.filterList import newsFilter, newsSet
 import pytz
 import re
 import certifi
@@ -21,7 +21,7 @@ recentSubject = ""
     wait=tenacity.wait_fixed(3), # wait 파라미터 추가
     stop=tenacity.stop_after_attempt(100),
 )
-async def etodayRun():
+async def etodayRun(msgQue):
     global startTime
     startTime = time.time()
     print("etodayRun()")
@@ -90,7 +90,8 @@ async def etodayRun():
                         if(isKeyword(title)) and (not isDup(href)):
                             newsSet.add(href)
                             curTxt = title+"\n"+href
-                            msgQue.append(curTxt)
+                            msgQue.put(curTxt)
+                            # msgQue.append(curTxt)
 
         except requests.exceptions.ConnectionError as e:
             print("ConnectionError occurred:", str(e))

@@ -4,7 +4,7 @@ import sys
 import io
 from bs4 import BeautifulSoup
 import requests
-from resources.filterList import newsFilter, newsSet, msgQue
+from resources.filterList import newsFilter, newsSet
 import pytz
 import datetime
 from selenium.common.exceptions import *
@@ -21,7 +21,7 @@ recentSubject = ""
     wait=tenacity.wait_fixed(3), # wait 파라미터 추가
     stop=tenacity.stop_after_attempt(100),
 )
-async def asiaeRun():
+async def asiaeRun(msgQue):
     global startTime
     startTime = time.time()
     print("asiaeRun()")
@@ -109,7 +109,8 @@ async def asiaeRun():
                 if(isKeyword(title)) and (not isDup(href)):
                     newsSet.add(href)
                     curTxt = title+"\n"+href
-                    msgQue.append(curTxt)
+                    msgQue.put(curTxt)
+                    # msgQue.append(curTxt)
 
         except Exception as e:
             print(str(e))

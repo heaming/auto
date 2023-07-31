@@ -1,7 +1,7 @@
 import threading
 import re
 import schedule
-from multiprocessing import Process, Value, Pool, Queue
+from multiprocessing import Process, Value, Pool, Pipe, Queue
 import asyncio
 import telegram
 import time
@@ -24,14 +24,13 @@ from sites.cbiz import cbizRun
 from sites.thebell import thebellRun
 from sites.nocutnews import nocutnewsRun
 from resources.telegramInfo import token, chat_id, bot
-from resources.filterList import newsFilter, newsSet, msgQue
+from resources.filterList import newsFilter, newsSet
 
 
 global startTime
 global retrySeconds
+global msgQue
 retrySeconds = 10
-
-
 
 @tenacity.retry(
     wait=tenacity.wait_fixed(retrySeconds), # wait 파라미터 추가
@@ -39,62 +38,88 @@ retrySeconds = 10
 )
 async def sendMsg(msgQue):
     print("sendMsg :: ")
-    if len(msgQue) > 0:
-        print(list(msgQue))
+    while msgQue:
+        msg = msgQue.get()
+        print(msg)
+        if msg is None:
+            break
+    # if len(msgQue) > 0:
+    #     print(list(msgQue))
         sendedCnt = 0
-        while que:
-            try:
-                if(sendedCnt < 20):
-                    if que:
-                        msg = que.pop()
-                        bot = await telegram.Bot(token=token)
-                        response = bot.send_message(chat_id, msg)
-                        if response:
-                            sendedCnt += 1
+        try:
+            if(sendedCnt < 20):
+                # if msgQue:
+                #     msg = msgQue.pop()
+                bot = await telegram.Bot(token=token)
+                response = bot.send_message(chat_id, msg)
+                if response:
+                    sendedCnt += 1
 
-                else:
-                    return
-            except telegram.error.RetryAfter as e:
-                print(str(e))
-                retrySeconds = int(re.sub(r'[^0-9]', '', str(e)))
-    else:
-        return
+            else:
+                return
+        except telegram.error.RetryAfter as e:
+            print(str(e))
+            retrySeconds = int(re.sub(r'[^0-9]', '', str(e)))
+    # else:
+    #     return
 
-def sendMsgHandler():
-    q = Queue()
+def sendMsgHandler(msgQue):
     asyncio.run(sendMsg(msgQue))
 
-def sendMsgWorker():
-    schedule.every(1).seconds.do(sendMsgHandler)
+def sendMsgWorker(msgQue):
+    schedule.every(1).seconds.do(sendMsgHandler(msgQue))
     while True:
         schedule.run_pending()
 
-async def getNews():
-    methodList = [thelecRun(), theguruRun(), asiaeRun(), cbizRun(), etodayRun(), fnnewsRun(), hankyungRun(), moneysRun(), newsisRun(), newsisRun(), nocutnewsRun(), sedailyRun(), thebellRun(), ynaRun(), yonhapnewstvRun()]
+async def checkMsgQue():
+    print(":: checkMsgQue ::")
+    for news in msgQue:
+        print(news)
+
+# def checkMsgQueHandler():
+#     asyncio.run(checkMsgQue())
+
+# def checkMsgQueWorker():
+#     schedule.every(1).seconds.do(checkMsgQueHandler)
+#     while True:
+#         schedule.run_pending()
+
+async def getNews(msgQue):
+    methodList = [thelecRun(msgQue), theguruRun(msgQue), asiaeRun(msgQue), cbizRun(msgQue), etodayRun(msgQue), fnnewsRun(msgQue), hankyungRun(msgQue), moneysRun(msgQue), newsisRun(msgQue), newsisRun(msgQue), nocutnewsRun(msgQue), sedailyRun(msgQue), thebellRun(msgQue), ynaRun(msgQue), yonhapnewstvRun(msgQue)]
+
     await asyncio.gather(*methodList)
     # await sendMsgHandler()
 
-def getNewsHandler():
+def getNewsHandler(msgQue):
+
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(getNews())
+    loop.run_until_complete(getNews(msgQue))
     # loop.run_forever()
     loop.close()
     end = time.time()
-    print(f'time taken: {end - start}')
+    # print(f'time taken: {end - start}')
 
-def getNewsWorker():
-    schedule.every(1).seconds.do(getNewsHandler)
+def getNewsWorker(msgQue):
+    schedule.every(1).seconds.do(getNewsHandler(msgQue))
     while True:
         schedule.run_pending()
 
 def runMethod(method):
     method()
+
 def main():
-    methodList = [getNewsWorker, sendMsgWorker]
-    shareValue = Value()
-    pool = Pool(processes=5)
-    pool.map(runMethod, methodList)
+    # methodList = [getNewsWorker, sendMsgWorker]
+    # pool = Pool(processes=2)
+    # pool.map(runMethod, methodList)
+    # pipe1, pipe2 = Pipe()
+    msgQue = Queue()
+    p0 = Process(target=getNewsWorker, args=(msgQue,))
+    p0.start()
+    p1 = Process(target=sendMsgWorker, args=(msgQue,))
+    p1.start()
+    p0.join()
+    p1.join()
 
 
 if __name__ == '__main__':
