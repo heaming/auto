@@ -1,6 +1,7 @@
 import threading
 import re
 import schedule
+import datetime
 from multiprocessing import Process, Value, Pool, Pipe, Queue
 import asyncio
 import telegram
@@ -25,6 +26,7 @@ from sites.thebell import thebellRun
 from sites.nocutnews import nocutnewsRun
 from resources.telegramInfo import token, chat_id, bot
 from resources.filterList import newsFilter, newsSet
+import pytz
 
 
 global startTime
@@ -42,14 +44,9 @@ async def sendMsg(msgQue):
         print(f"sendMsg :: {msg}")
         if msg is None:
             break
-    # if len(msgQue) > 0:
-    #     print(list(msgQue))
         sendedCnt = 0
         try:
             if(sendedCnt < 20):
-                # if msgQue:
-                #     msg = msgQue.pop()
-                print("여기")
                 bot = telegram.Bot(token=token)
                 # print(await bot.get_chat_member_count(chat_id))
                 response = await bot.send_message(chat_id, msg)
@@ -78,21 +75,16 @@ async def checkMsgQue():
     for news in msgQue:
         print(news)
 
-# def checkMsgQueHandler():
-#     asyncio.run(checkMsgQue())
-
-# def checkMsgQueWorker():
-#     schedule.every(1).seconds.do(checkMsgQueHandler)
-#     while True:
-#         schedule.run_pending()
-
 async def getNews(msgQue):
     methodList = [thelecRun(msgQue), theguruRun(msgQue), asiaeRun(msgQue), cbizRun(msgQue), etodayRun(msgQue), fnnewsRun(msgQue), hankyungRun(msgQue), moneysRun(msgQue), newsisRun(msgQue), newsisRun(msgQue), nocutnewsRun(msgQue), sedailyRun(msgQue), thebellRun(msgQue), ynaRun(msgQue), yonhapnewstvRun(msgQue)]
-    # methodList = [asiaeRun(msgQue), sedailyRun(msgQue)]
     await asyncio.gather(*methodList)
-    # await sendMsgHandler()
 
 def getNewsHandler(msgQue):
+    """ run at """
+    # now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
+    # if now.hour >= 24 or now.hour <= 6:
+    #     print("잘시간~~")
+    #     return
 
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     loop = asyncio.get_event_loop()
@@ -100,7 +92,6 @@ def getNewsHandler(msgQue):
     # loop.run_forever()
     loop.close()
     end = time.time()
-    # print(f'time taken: {end - start}')
 
 def getNewsWorker(msgQue):
     schedule.every(1).seconds.do(getNewsHandler, msgQue)
@@ -111,10 +102,6 @@ def runMethod(method):
     method()
 
 def main():
-    # methodList = [getNewsWorker, sendMsgWorker]
-    # pool = Pool(processes=2)
-    # pool.map(runMethod, methodList)
-    # pipe1, pipe2 = Pipe()
     msgQue = Queue()
     p0 = Process(target=getNewsWorker, args=(msgQue,))
     p0.start()
@@ -128,12 +115,6 @@ if __name__ == '__main__':
     print("[__main__] start")
     start = time.time()
     main()
-
-    # schedule.every(1).seconds.do()
-    # schedule.every(1).seconds.do(sendMsgHandler)
-
-    # while True:
-    #     schedule.run_pending()
 
 # 1.파이썬 언어
 # 2.스케줄링 (구현되어있음) - vscode로 기동해놓으면 앱종료하지 않는이상 계속 뉴스 긁어와야함

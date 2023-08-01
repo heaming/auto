@@ -20,8 +20,6 @@ recentSubject = ""
     stop=tenacity.stop_after_attempt(100),
 )
 async def nocutnewsRun(msgQue):
-    global startTime
-    startTime = time.time()
     print("nocutnewsRun()")
     async def main():
         if(len(newsSet) > 1000):
@@ -47,14 +45,11 @@ async def nocutnewsRun(msgQue):
     async def job():
         global recentSubject
         now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
-        # if now.hour >= 24 or now.hour <= 6:
-        #     return
 
         sys.stderr = io.TextIOWrapper(sys.stderr.detach(), encoding='utf-8')
         sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
 
         try:
-            # print("------[nocutnews] %s ------" %(time.time() - startTime))
             async with aiohttp.ClientSession(headers=headers) as session:
                 async with session.get(BASE_URL) as res:
                     if res.status == 200:
@@ -74,13 +69,8 @@ async def nocutnewsRun(msgQue):
 
                             temp = contents[len(contents)-1].split(" ")
                             writtenAt = temp[len(temp)-1]
-                            # print(writtenAt)
 
-                            if(datetime.datetime.strptime(writtenAt, "%I:%M:%S").hour < now.hour):
-                                # print(writtenAt)
-                                break
-                            if (datetime.datetime.strptime(writtenAt, "%I:%M:%S").hour == now.hour & datetime.datetime.strptime(writtenAt, "%I:%M:%S") < datetime.datetime.now() - datetime.timedelta(minutes=1)):
-                                # print(writtenAt)
+                            if(datetime.datetime.strptime(writtenAt, "%I:%M:%S") < now - datetime.timedelta(minutes=1)):
                                 break
 
                             if(len(contents) > 1):
@@ -94,8 +84,6 @@ async def nocutnewsRun(msgQue):
                                 newsSet.add(href)
                                 curTxt = title+"\n"+href+content
                                 msgQue.put(curTxt)
-                                # msgQue.append(curTxt)
-
 
         except requests.exceptions.ConnectionError as e:
             print("ConnectionError occurred:", str(e))

@@ -27,8 +27,6 @@ recentSubject = ""
     stop=tenacity.stop_after_attempt(100),
 )
 async def news1Run(msgQue):
-    global startTime
-    startTime = time.time()
     print("news1Run()")
 
     async def main():
@@ -43,7 +41,6 @@ async def news1Run(msgQue):
         return False
 
     def isDup(href):
-        # print(href)
         if href in newsSet:
             return True
         return False
@@ -55,8 +52,6 @@ async def news1Run(msgQue):
     async def job():
         global recentSubject, driver, openedWindow
         now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
-        # if now.hour >= 24 or now.hour <= 6:
-        #     return
 
         sys.stderr = io.TextIOWrapper(sys.stderr.detach(), encoding='utf-8')
         sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
@@ -68,8 +63,6 @@ async def news1Run(msgQue):
         options.add_argument("lang=ko_KR") # 한국어!
 
         try:
-            # print("------[news1] %s ------" %(time.time() - startTime))
-
             driver = webdriver.Chrome(options=options)
             driver.implicitly_wait(1)
             driver.get(BASE_URL)
@@ -93,25 +86,14 @@ async def news1Run(msgQue):
                     recentSubject = article
 
                 contents = list(article.stripped_strings)
-                # writtenAt = contents[len(contents)-2]
-                # print(writtenAt)
-                #
-                # if(len(re.match(r'[0-9]초전', '', writtenAt)) <= 0 & len(re.match('1분전')) <= 0):
-                #     print(len(re.match(r'[0-9]초전', '', writtenAt)))
-                #     print(len(re.match('1분전')))
-                #     continue
-
                 title = contents[0]
 
                 href = "https://www.news1.kr"+article.select_one('a')['href']
-                # print(title+" "+href)
 
                 if(isKeyword(title)) and (not isDup(href)):
                     newsSet.add(href)
                     curTxt = title+"\n"+href
                     msgQue.put(curTxt)
-                    # msgQue.append(curTxt)
-                    # return curList
 
         except requests.exceptions.ConnectionError as e:
             print("ConnectionError occurred:", str(e))

@@ -29,27 +29,12 @@ async def theguruRun(msgQue):
             newsSet.clear()
         await job()
 
-        # textList = await job()
-        print("theguruRun %s" %len(newsSet))
-        # print(textList)
-        # msgQue.append(textList)
-        print(msgQue)
-        print("===================")
-
-
-
-        # return text
-        # bot = telegram.Bot(token=token)
-        # await bot.send_message(chat_id, text)
-
     def isKeyword(title):
-        # print(title)
         if len(list(filter(lambda f: f in title, newsFilter))) > 0:
             return True
         return False
 
     def isDup(href):
-        # print(href)
         if href in newsSet:
             return True
         return False
@@ -61,15 +46,11 @@ async def theguruRun(msgQue):
     async def job():
         global recentSubject
         now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
-        # if now.hour >= 24 or now.hour <= 6:
-        #     return
 
         sys.stderr = io.TextIOWrapper(sys.stderr.detach(), encoding='utf-8')
         sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
 
         try:
-            # print("------[theguru] %s ------" %(time.time() - startTime))
-            # curList = []
             async with aiohttp.ClientSession(headers=headers) as session:
                 async with session.get(BASE_URL) as res:
                     if res.status == 200:
@@ -86,26 +67,16 @@ async def theguruRun(msgQue):
                             contents = list(article.stripped_strings)
                             writtenAt = contents[len(contents)-1]
 
-                            if(datetime.datetime.strptime(writtenAt, "%H:%M:%S").hour < now.hour):
-                                # print(writtenAt)
-                                break
-                            if (datetime.datetime.strptime(writtenAt, "%H:%M:%S").hour == now.hour & datetime.datetime.strptime(writtenAt, "%H:%M:%S") < datetime.datetime.now() - datetime.timedelta(minutes=1)):
-                                # print(writtenAt)
+                            if (datetime.datetime.strptime(writtenAt, "%H:%M:%S") < now - datetime.timedelta(minutes=1)):
                                 break
 
-                            # print(contents)
                             title = contents[0]
                             href = "https://www.theguru.co.kr"+article.select_one('a')['href']
-                            # print(title+" "+href)
 
                             if(isKeyword(title)) and (not isDup(href)):
                                 newsSet.add(href)
                                 curTxt = title+"\n"+href
-                                # curList.append(curTxt)
                                 msgQue.put(curTxt)
-                                # msgQue.append(curTxt)
-
-                        # return curList
 
         except requests.exceptions.ConnectionError as e:
             print("ConnectionError occurred:", str(e))

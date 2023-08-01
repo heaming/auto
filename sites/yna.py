@@ -20,24 +20,19 @@ recentSubject = ""
     stop=tenacity.stop_after_attempt(100),
 )
 async def ynaRun(msgQue):
-    global startTime
-    startTime = time.time()
     print("ynaRun()")
 
     async def main():
         if(len(newsSet) > 1000):
             newsSet.clear()
-        print(msgQue)
         await job()
 
     def isKeyword(title):
-        # print(title)
         if len(list(filter(lambda f: f in title, newsFilter))) > 0:
             return True
         return False
 
     def isDup(href):
-        # print(href)
         if href in newsSet:
             return True
         return False
@@ -49,14 +44,11 @@ async def ynaRun(msgQue):
     async def job():
         global recentSubject
         now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
-        # if now.hour >= 24 or now.hour <= 6:
-        #     return
 
         sys.stderr = io.TextIOWrapper(sys.stderr.detach(), encoding='utf-8')
         sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
 
         try:
-            # print("------[yna] %s ------" %(time.time() - startTime))
             async with aiohttp.ClientSession(headers=headers) as session:
                 async with session.get(BASE_URL) as res:
                     if res.status == 200:
@@ -77,11 +69,7 @@ async def ynaRun(msgQue):
                             else:
                                 recentSubject = article
 
-                            if(datetime.datetime.strptime(writtenAt, "%m-%d %H:%M").hour < now.hour):
-                                # print(writtenAt)
-                                break
-                            if (datetime.datetime.strptime(writtenAt, "%m-%d %H:%M").hour == now.hour & datetime.datetime.strptime(writtenAt, "%m-%d %H:%M") < datetime.datetime.now() - datetime.timedelta(minutes=1)):
-                                # print(writtenAt)
+                            if (datetime.datetime.strptime(writtenAt, "%m-%d %H:%M") < now - datetime.timedelta(minutes=1)):
                                 break
 
                             contents = list(article.stripped_strings)
@@ -93,7 +81,6 @@ async def ynaRun(msgQue):
 
                             title += contents[0]
                             href = "https://"+article.select_one('a')['href'].replace("//", "")
-                            # print(title+" "+href)
 
                             if(isKeyword(title)) and (not isDup(href)):
                                 newsSet.add(href)

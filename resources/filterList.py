@@ -2,9 +2,6 @@ from collections import deque
 from multiprocessing import Queue
 
 newsSet = set()
-# msgQue = deque()
-# msgQue = Queue()
-newsSet = set()
 newsFilter = [
     "[속보]",
     "증시",

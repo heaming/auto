@@ -3,7 +3,6 @@ import time
 import sys
 import io
 from bs4 import BeautifulSoup
-import requests
 from resources.filterList import newsFilter, newsSet
 import pytz
 import datetime
@@ -22,18 +21,12 @@ recentSubject = ""
     stop=tenacity.stop_after_attempt(100),
 )
 async def asiaeRun(msgQue):
-    global startTime
-    startTime = time.time()
     print("asiaeRun()")
 
     async def main():
         if(len(newsSet) > 1000):
             newsSet.clear()
         await job()
-        # print("asiaeRun %s" %len(newsSet))
-        # print(textList)
-        # print(msgQue)
-        # print("===================")
 
     def isKeyword(title):
         # print(title)
@@ -54,8 +47,6 @@ async def asiaeRun(msgQue):
     async def job():
         global recentSubject, driver, openedWindow
         now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
-        # if now.hour >= 24 or now.hour <= 6:
-        #     return
 
         sys.stderr = io.TextIOWrapper(sys.stderr.detach(), encoding='utf-8')
         sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
@@ -67,7 +58,6 @@ async def asiaeRun(msgQue):
         options.add_argument("lang=ko_KR") # 한국어!
 
         try:
-            # print("------[asiae] %s ------" %(time.time() - startTime))
             driver = webdriver.Chrome(options=options)
             driver.implicitly_wait(1)
             driver.get(BASE_URL)
@@ -83,7 +73,6 @@ async def asiaeRun(msgQue):
                     driver.close()
 
             articles = soup.select("#pageList > ul > li")
-            # print(articles)
 
             for article in articles:
                 if article == recentSubject:
@@ -94,9 +83,13 @@ async def asiaeRun(msgQue):
                 writtenAt = list(article.stripped_strings)[0]
                 title = list(article.stripped_strings)[1]
 
-                if(datetime.datetime.strptime(writtenAt, "%H:%M").hour < now.hour):
-                    break
-                if(datetime.datetime.strptime(writtenAt, "%H:%M").hour == now.hour & datetime.datetime.strptime(writtenAt, "%H:%M").minute < now.minute):
+                """
+                [get time] 
+                :: time data not match format error occurs when the date changes
+                """
+                if(writtenAt.find(':') < 0):
+                    return
+                if(datetime.datetime.strptime(writtenAt, "%H:%M") < now - datetime.timedelta(minutes=1)):
                     break
 
                 if(len(list(article.stripped_strings)) > 2):
@@ -108,7 +101,6 @@ async def asiaeRun(msgQue):
                     newsSet.add(href)
                     curTxt = title+"\n"+href
                     msgQue.put(curTxt)
-                    # msgQue.append(curTxt)
 
         except Exception as e:
             print(str(e))

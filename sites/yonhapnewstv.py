@@ -23,24 +23,19 @@ recentSubject = ""
     stop=tenacity.stop_after_attempt(100),
 )
 async def yonhapnewstvRun(msgQue):
-    global startTime
-    startTime = time.time()
     print("yonhapnewstvRun()")
 
     async def main():
         if(len(newsSet) > 1000):
             newsSet.clear()
-        # print(msgQue.qsize())
         await job()
 
     def isKeyword(title):
-        # print(title)
         if len(list(filter(lambda f: f in title, newsFilter))) > 0:
             return True
         return False
 
     def isDup(href):
-        # print(href)
         if href in newsSet:
             return True
         return False
@@ -52,8 +47,6 @@ async def yonhapnewstvRun(msgQue):
     async def job():
         global recentSubject, driver, openedWindow
         now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
-        # if now.hour >= 24 or now.hour <= 6:
-        #     return
 
         sys.stderr = io.TextIOWrapper(sys.stderr.detach(), encoding='utf-8')
         sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
@@ -65,8 +58,6 @@ async def yonhapnewstvRun(msgQue):
         options.add_argument("lang=ko_KR") # 한국어!
 
         try:
-            # print("------[yonhapnewstv] %s ------" % (time.time() - startTime))
-
             driver = webdriver.Chrome(options=options)
             driver.implicitly_wait(1)
             driver.get(BASE_URL)
@@ -89,18 +80,12 @@ async def yonhapnewstvRun(msgQue):
                     recentSubject = article
 
                 contents = list(article.stripped_strings)
-                # print(contents)
                 writtenAt = contents[len(contents)-1]
-                # print(writtenAt)
                 title = ""
                 content = ""
 
-                if(datetime.datetime.strptime(writtenAt, "%Y-%m-%d %H:%M:%S").hour < now.hour):
-                    # print(writtenAt)
-                    continue
-                if (datetime.datetime.strptime(writtenAt, "%Y-%m-%d %H:%M:%S").hour == now.hour & datetime.datetime.strptime(writtenAt, "%Y-%m-%d %H:%M:%S") < datetime.datetime.now() - datetime.timedelta(minutes=1)):
-                    # print(writtenAt)
-                    continue
+                if (datetime.datetime.strptime(writtenAt, "%Y-%m-%d %H:%M:%S") < now - datetime.timedelta(minutes=1)):
+                    break
 
                 if(len(contents) > 1):
                     content += "\n"+list(article.stripped_strings)[1]
@@ -113,7 +98,6 @@ async def yonhapnewstvRun(msgQue):
                     newsSet.add(href)
                     curTxt = title+"\n"+href+content
                     msgQue.put(curTxt)
-                    # msgQue.append(curTxt)
 
             driver.quit()
 

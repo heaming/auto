@@ -20,27 +20,19 @@ recentSubject = ""
     stop=tenacity.stop_after_attempt(100),
 )
 async def thelecRun(msgQue):
-    global startTime
-    startTime = time.time()
     print("thelecRun()")
 
     async def main():
         if(len(newsSet) > 1000):
             newsSet.clear()
         await job()
-        # print("thelecRun %s" %len(newsSet))
-        # print(textList)
-        # print(msgQue)
-        # print("===================")
 
     def isKeyword(title):
-        # print(title)
         if len(list(filter(lambda f: f in title, newsFilter))) > 0:
             return True
         return False
 
     def isDup(href):
-        # print(href)
         if href in newsSet:
             return True
         return False
@@ -52,15 +44,11 @@ async def thelecRun(msgQue):
     async def job():
         global recentSubject
         now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
-        # if now.hour >= 24 or now.hour <= 6:
-        #     return
 
         sys.stderr = io.TextIOWrapper(sys.stderr.detach(), encoding='utf-8')
         sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
 
         try:
-            # print("------[thelec] %s ------" %(time.time() - startTime))
-
             async with aiohttp.ClientSession(headers=headers) as session:
                 async with session.get(BASE_URL) as res:
                     if res.status == 200:
@@ -77,22 +65,16 @@ async def thelecRun(msgQue):
                             contents = list(article.stripped_strings)
                             writtenAt = contents[len(contents)-1]
 
-                            if(datetime.datetime.strptime(writtenAt, "| %Y-%m-%d %H:%M").hour < now.hour):
+                            if(datetime.datetime.strptime(writtenAt, "| %Y-%m-%d %H:%M") < now - datetime.timedelta(minutes=1)):
                                 break
-                            if(datetime.datetime.strptime(writtenAt, "| %Y-%m-%d %H:%M").hour == now.hour & datetime.datetime.strptime(writtenAt, "| %Y-%m-%d %H:%M") < datetime.datetime.now() - datetime.timedelta(minutes=1)):
-                                break
-                                print(writtenAt)
 
                             title = contents[0]
                             href = "https://www.thelec.kr"+article.select_one('a')['href']
-                            # print(title+" "+href)
 
                             if(isKeyword(title)) and (not isDup(href)):
                                 newsSet.add(href)
                                 curTxt = title+"\n"+href
                                 msgQue.put(curTxt)
-                                # msgQue.append(curTxt)
-
 
         except requests.exceptions.ConnectionError as e:
             print("ConnectionError occurred:", str(e))
