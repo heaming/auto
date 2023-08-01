@@ -68,7 +68,7 @@ async def news1Run(msgQue):
         options.add_argument("lang=ko_KR") # 한국어!
 
         try:
-            print("------[news1] %s ------" %(time.time() - startTime))
+            # print("------[news1] %s ------" %(time.time() - startTime))
 
             driver = webdriver.Chrome(options=options)
             driver.implicitly_wait(1)

@@ -3,7 +3,7 @@ import asyncio
 import time
 import sys
 import io
-
+from resources.sessionInfo import headers
 import schedule
 from bs4 import BeautifulSoup
 import requests
@@ -11,6 +11,7 @@ from resources.filterList import newsFilter, newsSet
 import pytz
 import datetime
 import tenacity
+import aiohttp
 
 BASE_URL = "https://newsis.com/realnews/"
 recentSubject = ""
@@ -55,43 +56,40 @@ async def newsisRun(msgQue):
         sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
 
         try:
-            print("------[newsis] %s ------" %(time.time() - startTime))
-            with requests.Session() as s:
-                res = s.get(BASE_URL, headers={'User-Agent': 'Mozilla/5.0'})
-                # res.raise_for_status()
-                # res.encoding = None #ISO-8859-1 처리
+            # print("------[newsis] %s ------" %(time.time() - startTime))
+            async with aiohttp.ClientSession(headers=headers) as session:
+                async with session.get(BASE_URL) as res:
+                    if res.status == 200:
+                        resText = await res.text()
+                        soup = BeautifulSoup(resText, 'html.parser')
 
-                if res.status_code == requests.codes.ok:
-                    # print(res.encoding)
-                    soup = BeautifulSoup(res.text, 'html.parser')
+                        articles = soup.select(".article > .articleList2 > li > div > .txtCont")
 
-                    articles = soup.select(".article > .articleList2 > li > div > .txtCont")
+                        for article in articles:
+                            if article == recentSubject:
+                                break
+                            else:
+                                recentSubject = article
 
-                    for article in articles:
-                        if article == recentSubject:
-                            break
-                        else:
-                            recentSubject = article
-
-                        contents = list(article.stripped_strings)
-                        writtenAt = contents[len(contents)-1]
-                        # print(writtenAt)
-
-                        if(datetime.datetime.strptime(writtenAt, "%Y.%m.%d %H:%M:%S").hour < now.hour):
+                            contents = list(article.stripped_strings)
+                            writtenAt = contents[len(contents)-1]
                             # print(writtenAt)
-                            break
-                        if (datetime.datetime.strptime(writtenAt, "%Y.%m.%d %H:%M:%S").hour == now.hour & datetime.datetime.strptime(writtenAt, "%Y.%m.%d %H:%M:%S").minute < now.minute):
-                            # print(writtenAt)
-                            break
 
-                        title = contents[0]
-                        href = "https://newsis.com/"+article.select_one('a')['href']
+                            if(datetime.datetime.strptime(writtenAt, "%Y.%m.%d %H:%M:%S").hour < now.hour):
+                                # print(writtenAt)
+                                break
+                            if (datetime.datetime.strptime(writtenAt, "%Y.%m.%d %H:%M:%S").hour == now.hour & datetime.datetime.strptime(writtenAt, "%Y.%m.%d %H:%M:%S") < datetime.datetime.now() - datetime.timedelta(minutes=1)):
+                                # print(writtenAt)
+                                break
 
-                        if(isKeyword(title)) and (not isDup(href)):
-                            newsSet.add(href)
-                            curTxt = title+"\n"+href
-                            msgQue.put(curTxt)
-                            # msgQue.append(curTxt)
+                            title = contents[0]
+                            href = "https://newsis.com/"+article.select_one('a')['href']
+
+                            if(isKeyword(title)) and (not isDup(href)):
+                                newsSet.add(href)
+                                curTxt = title+"\n"+href
+                                msgQue.put(curTxt)
+                                # msgQue.append(curTxt)
 
 
         except requests.exceptions.ConnectionError as e:

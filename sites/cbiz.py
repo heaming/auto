@@ -2,7 +2,7 @@ import asyncio
 import time
 import sys
 import io
-
+from resources.sessionInfo import headers
 import schedule
 from bs4 import BeautifulSoup
 import requests
@@ -10,6 +10,7 @@ from resources.filterList import newsFilter, newsSet
 import pytz
 import datetime
 import tenacity
+import aiohttp
 
 BASE_URL = "https://cbiz.chosun.com/svc/bulletin/index.html"
 recentSubject = ""
@@ -54,40 +55,38 @@ async def cbizRun(msgQue):
         sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
 
         try:
-            print("------[cbiz] %s ------" %(time.time() - startTime))
-            with requests.Session() as s:
-                res = s.get(BASE_URL, headers={'User-Agent': 'Mozilla/5.0'})
-                res.raise_for_status()
-                res.encoding = None #ISO-8859-1 처리
+            # print("------[cbiz] %s ------" %(time.time() - startTime))
+            async with aiohttp.ClientSession(headers=headers) as session:
+                async with session.get(BASE_URL) as res:
+                    if res.status == 200:
+                        resText = await res.text(encoding=None)
+                        soup = BeautifulSoup(resText, 'html.parser')
 
-                if res.status_code == requests.codes.ok:
-                    soup = BeautifulSoup(res.text, 'html.parser')
+                        articles = soup.select(".article_list > ul > li")
 
-                    articles = soup.select(".article_list > ul > li")
+                        for article in articles:
+                            if article == recentSubject:
+                                break
+                            else:
+                                recentSubject = article
 
-                    for article in articles:
-                        if article == recentSubject:
-                            break
-                        else:
-                            recentSubject = article
+                            contents = list(article.stripped_strings)
+                            writtenAt = contents[1]
+                            title = contents[0]
 
-                        contents = list(article.stripped_strings)
-                        writtenAt = contents[1]
-                        title = contents[0]
+                            if(datetime.datetime.strptime(writtenAt, "%H:%M").hour < now.hour):
+                                break
+                            if(datetime.datetime.strptime(writtenAt, "%H:%M").hour == now.hour & datetime.datetime.strptime(writtenAt, "%H:%M") < datetime.datetime.now() - datetime.timedelta(minutes=1)):
+                                break
 
-                        if(datetime.datetime.strptime(writtenAt, "%H:%M").hour < now.hour):
-                            break
-                        if(datetime.datetime.strptime(writtenAt, "%H:%M").hour == now.hour & datetime.datetime.strptime(writtenAt, "%H:%M").minute < now.minute):
-                            break
+                            href = "https://cbiz.chosun.com"+article.select_one('a')['href']
+                            # print(title+" "+href)
 
-                        href = "https://cbiz.chosun.com"+article.select_one('a')['href']
-                        # print(title+" "+href)
-
-                        if(isKeyword(title)) and (not isDup(href)):
-                            newsSet.add(href)
-                            curTxt = title+"\n"+href
-                            msgQue.put(curTxt)
-                            # msgQue.append(curTxt)
+                            if(isKeyword(title)) and (not isDup(href)):
+                                newsSet.add(href)
+                                curTxt = title+"\n"+href
+                                msgQue.put(curTxt)
+                                # msgQue.append(curTxt)
 
 
         except requests.exceptions.ConnectionError as e:

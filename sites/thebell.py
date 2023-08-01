@@ -2,7 +2,7 @@ import asyncio
 import time
 import sys
 import io
-
+import aiohttp
 import schedule
 from bs4 import BeautifulSoup
 import requests
@@ -10,6 +10,7 @@ from resources.filterList import newsFilter, newsSet
 import pytz
 import datetime
 import tenacity
+from resources.sessionInfo import headers
 
 BASE_URL = "http://www.thebell.co.kr/free/content/Article.asp?svccode=00"
 recentSubject = ""
@@ -53,46 +54,46 @@ async def thebellRun(msgQue):
         sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
 
         try:
-            print("------[thebell] %s ------" %(time.time() - startTime))
-            with requests.Session() as s:
-                res = s.get(BASE_URL, headers={'User-Agent': 'Mozilla/5.0'})
+            # print("------[thebell] %s ------" %(time.time() - startTime))
+            async with aiohttp.ClientSession(headers=headers) as session:
+                async with session.get(BASE_URL) as res:
+                    if res.status == 200:
+                        resText = await res.text()
+                        soup = BeautifulSoup(resText, 'html.parser')
 
-                if res.status_code == requests.codes.ok:
-                    soup = BeautifulSoup(res.text, 'html.parser')
+                        articles = soup.select(".newsList > .listBox > ul > li > dl")
 
-                    articles = soup.select(".newsList > .listBox > ul > li > dl")
+                        for article in articles:
+                            if article == recentSubject:
+                                break
+                            else:
+                                recentSubject = article
 
-                    for article in articles:
-                        if article == recentSubject:
-                            break
-                        else:
-                            recentSubject = article
+                            contents = list(article.stripped_strings)
+                            temp = contents[len(contents)-1].split(" ")
+                            writtenAt = temp[len(temp)-1]
 
-                        contents = list(article.stripped_strings)
-                        temp = contents[len(contents)-1].split(" ")
-                        writtenAt = temp[len(temp)-1]
+                            if(datetime.datetime.strptime(writtenAt, "%I:%M:%S").hour < now.hour):
+                                break
+                            if (datetime.datetime.strptime(writtenAt, "%I:%M:%S").hour == now.hour & datetime.datetime.strptime(writtenAt, "%I:%M:%S") < datetime.datetime.now() - datetime.timedelta(minutes=1)):
+                                print(writtenAt)
+                                break
 
-                        if(datetime.datetime.strptime(writtenAt, "%I:%M:%S").hour < now.hour):
-                            break
-                        if (datetime.datetime.strptime(writtenAt, "%I:%M:%S").hour == now.hour & datetime.datetime.strptime(writtenAt, "%I:%M:%S").minute < now.minute):
-                            print(writtenAt)
-                            break
+                            title = ""
+                            content = ""
 
-                        title = ""
-                        content = ""
+                            if(len(contents) > 1):
+                                content += "\n"+list(article.stripped_strings)[1]
 
-                        if(len(contents) > 1):
-                            content += "\n"+list(article.stripped_strings)[1]
+                            title += contents[0]
+                            href = "http://www.thebell.co.kr/free/content/"+article.select_one('a')['href']
+                            # print(title+" "+href)
 
-                        title += contents[0]
-                        href = "http://www.thebell.co.kr/free/content/"+article.select_one('a')['href']
-                        # print(title+" "+href)
-
-                        if(isKeyword(title)) and (not isDup(href)):
-                            newsSet.add(href)
-                            curTxt = title+"\n"+href+content
-                            msgQue.put(curTxt)
-                            # msgQue.append(curTxt)
+                            if(isKeyword(title)) and (not isDup(href)):
+                                newsSet.add(href)
+                                curTxt = title+"\n"+href+content
+                                msgQue.put(curTxt)
+                                # msgQue.append(curTxt)
 
 
         except requests.exceptions.ConnectionError as e:

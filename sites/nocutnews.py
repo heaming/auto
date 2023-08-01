@@ -2,7 +2,7 @@ import asyncio
 import time
 import sys
 import io
-
+import aiohttp
 import schedule
 from bs4 import BeautifulSoup
 import requests
@@ -10,6 +10,7 @@ from resources.filterList import newsFilter, newsSet
 import pytz
 import datetime
 import tenacity
+from resources.sessionInfo import headers
 
 BASE_URL = "https://www.nocutnews.co.kr/news/list"
 recentSubject = ""
@@ -53,48 +54,47 @@ async def nocutnewsRun(msgQue):
         sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
 
         try:
-            print("------[nocutnews] %s ------" %(time.time() - startTime))
-            with requests.Session() as s:
-                res = s.get(BASE_URL, headers={'User-Agent': 'Mozilla/5.0'})
+            # print("------[nocutnews] %s ------" %(time.time() - startTime))
+            async with aiohttp.ClientSession(headers=headers) as session:
+                async with session.get(BASE_URL) as res:
+                    if res.status == 200:
+                        resText = await res.text()
+                        soup = BeautifulSoup(resText, 'html.parser')
+                        articles = soup.select("#pnlNewsList > ul > li > dl")
 
-                if res.status_code == requests.codes.ok:
-                    soup = BeautifulSoup(res.text, 'html.parser')
+                        for article in articles:
+                            if article == recentSubject:
+                                break
+                            else:
+                                recentSubject = article
 
-                    articles = soup.select("#pnlNewsList > ul > li > dl")
+                            contents = list(article.stripped_strings)
+                            title = ""
+                            content = ""
 
-                    for article in articles:
-                        if article == recentSubject:
-                            break
-                        else:
-                            recentSubject = article
-
-                        contents = list(article.stripped_strings)
-                        title = ""
-                        content = ""
-
-                        temp = contents[len(contents)-1].split(" ")
-                        writtenAt = temp[len(temp)-1]
-                        # print(writtenAt)
-
-                        if(datetime.datetime.strptime(writtenAt, "%I:%M:%S").hour < now.hour):
+                            temp = contents[len(contents)-1].split(" ")
+                            writtenAt = temp[len(temp)-1]
                             # print(writtenAt)
-                            break
-                        if (datetime.datetime.strptime(writtenAt, "%I:%M:%S").hour == now.hour & datetime.datetime.strptime(writtenAt, "%I:%M:%S").minute < now.minute):
-                            # print(writtenAt)
-                            break
 
-                        if(len(contents) > 1):
-                            content += "\n"+list(article.stripped_strings)[1]
+                            if(datetime.datetime.strptime(writtenAt, "%I:%M:%S").hour < now.hour):
+                                # print(writtenAt)
+                                break
+                            if (datetime.datetime.strptime(writtenAt, "%I:%M:%S").hour == now.hour & datetime.datetime.strptime(writtenAt, "%I:%M:%S") < datetime.datetime.now() - datetime.timedelta(minutes=1)):
+                                # print(writtenAt)
+                                break
 
-                        title += contents[0]
-                        href = "https://www.nocutnews.co.kr"+article.select_one('a')['href']
-                        # print(title+" "+href)
+                            if(len(contents) > 1):
+                                content += "\n"+list(article.stripped_strings)[1]
 
-                        if(isKeyword(title)) and (not isDup(href)):
-                            newsSet.add(href)
-                            curTxt = title+"\n"+href+content
-                            msgQue.put(curTxt)
-                            # msgQue.append(curTxt)
+                            title += contents[0]
+                            href = "https://www.nocutnews.co.kr"+article.select_one('a')['href']
+                            # print(title+" "+href)
+
+                            if(isKeyword(title)) and (not isDup(href)):
+                                newsSet.add(href)
+                                curTxt = title+"\n"+href+content
+                                msgQue.put(curTxt)
+                                # msgQue.append(curTxt)
 
 
         except requests.exceptions.ConnectionError as e:

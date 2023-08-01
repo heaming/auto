@@ -2,7 +2,7 @@ import asyncio
 import time
 import sys
 import io
-
+import aiohttp
 import schedule
 from bs4 import BeautifulSoup
 import requests
@@ -10,6 +10,7 @@ from resources.filterList import newsFilter, newsSet
 import pytz
 import datetime
 import tenacity
+from resources.sessionInfo import headers
 
 BASE_URL = "https://www.fnnews.com/newsflash/"
 recentSubject = ""
@@ -54,43 +55,42 @@ async def fnnewsRun(msgQue):
         sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
 
         try:
-            print("------[fnnews] %s ------" %(time.time() - startTime))
-            with requests.Session() as s:
-                res = s.get(BASE_URL, headers={'User-Agent': 'Mozilla/5.0'})
+            # print("------[fnnews] %s ------" %(time.time() - startTime))
+            async with aiohttp.ClientSession(headers=headers) as session:
+                async with session.get(BASE_URL) as res:
+                    if res.status == 200:
+                        resText = await res.text()
+                        soup = BeautifulSoup(resText, 'html.parser')
+                        articles = soup.select(".contents > .wrap_cont > .inner_flash > .list_news > li")
+                        # print(articles)
 
-                if res.status_code == requests.codes.ok:
-                    soup = BeautifulSoup(res.text, 'html.parser')
+                        for article in articles:
+                            if article == recentSubject:
+                                break
+                            else:
+                                recentSubject = article
 
-                    articles = soup.select(".contents > .wrap_cont > .inner_flash > .list_news > li")
-                    # print(articles)
+                            contents = list(article.stripped_strings)
+                            title = contents[1]
 
-                    for article in articles:
-                        if article == recentSubject:
-                            break
-                        else:
-                            recentSubject = article
+                            if contents[3]:
+                                writtenAt = contents[3]
+                            else:
+                                writtenAt = contents[2]
 
-                        contents = list(article.stripped_strings)
-                        title = contents[1]
+                            if(datetime.datetime.strptime(writtenAt, "%Y.%m.%d %H:%M").hour < now.hour):
+                                break
+                            if(datetime.datetime.strptime(writtenAt, "%Y.%m.%d %H:%M").hour == now.hour & datetime.datetime.strptime(writtenAt, "%Y.%m.%d %H:%M") < datetime.datetime.now() - datetime.timedelta(minutes=1)):
+                                break
 
-                        if contents[3]:
-                            writtenAt = contents[3]
-                        else:
-                            writtenAt = contents[2]
+                            href = "https://www.fnnews.com"+article.select_one('a')['href']
+                            # print(title+" "+href)
 
-                        if(datetime.datetime.strptime(writtenAt, "%Y.%m.%d %H:%M").hour < now.hour):
-                            break
-                        if(datetime.datetime.strptime(writtenAt, "%Y.%m.%d %H:%M").hour == now.hour & datetime.datetime.strptime(writtenAt, "%Y.%m.%d %H:%M").minute < now.minute):
-                            break
-
-                        href = "https://www.fnnews.com"+article.select_one('a')['href']
-                        # print(title+" "+href)
-
-                        if(isKeyword(title)) and (not isDup(href)):
-                            newsSet.add(href)
-                            curTxt = title+"\n"+href
-                            msgQue.put(curTxt)
-                            # msgQue.append(curTxt)
+                            if(isKeyword(title)) and (not isDup(href)):
+                                newsSet.add(href)
+                                curTxt = title+"\n"+href
+                                msgQue.put(curTxt)
+                                # msgQue.append(curTxt)
 
 
         except requests.exceptions.ConnectionError as e:

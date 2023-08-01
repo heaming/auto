@@ -2,7 +2,7 @@ import asyncio
 import time
 import sys
 import io
-
+import aiohttp
 import schedule
 from bs4 import BeautifulSoup
 import requests
@@ -10,6 +10,7 @@ from resources.filterList import newsFilter, newsSet
 import pytz
 import datetime
 import tenacity
+from resources.sessionInfo import headers
 
 BASE_URL = "https://moneys.mt.co.kr/news/mwList.php?code=w0000&code2=w0100"
 recentSubject = ""
@@ -56,38 +57,38 @@ async def moneysRun(msgQue):
         sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
 
         try:
-            print("------[moneys] %s ------" %(time.time() - startTime))
-            with requests.Session() as s:
-                res = s.get(BASE_URL, headers={'User-Agent': 'Mozilla/5.0'})
+            # print("------[moneys] %s ------" %(time.time() - startTime))
+            async with aiohttp.ClientSession(headers=headers) as session:
+                async with session.get(BASE_URL) as res:
+                    if res.status == 200:
+                        resText = await res.text()
+                        soup = BeautifulSoup(resText, 'html.parser')
+                        articles = soup.select('#content > div > ul > .bundle')
 
-                if res.status_code == requests.codes.ok:
-                    soup = BeautifulSoup(res.text, 'html.parser')
-                    articles = soup.select('#content > div > ul > .bundle')
+                        for article in articles:
+                            if article == recentSubject:
+                                break
+                            else:
+                                recentSubject = article
 
-                    for article in articles:
-                        if article == recentSubject:
-                            break
-                        else:
-                            recentSubject = article
+                            contents = list(article.stripped_strings)
+                            writtenAt = contents[len(contents)-1]
 
-                        contents = list(article.stripped_strings)
-                        writtenAt = contents[len(contents)-1]
+                            if(datetime.datetime.strptime(writtenAt, "%Y.%m.%d %H:%M").hour < now.hour):
+                                break
+                            if(datetime.datetime.strptime(writtenAt, "%Y.%m.%d %H:%M").hour == now.hour & datetime.datetime.strptime(writtenAt, "%Y.%m.%d %H:%M") < datetime.datetime.now() - datetime.timedelta(minutes=1)):
+                                break
 
-                        if(datetime.datetime.strptime(writtenAt, "%Y.%m.%d %H:%M").hour < now.hour):
-                            break
-                        if(datetime.datetime.strptime(writtenAt, "%Y.%m.%d %H:%M").hour == now.hour & datetime.datetime.strptime(writtenAt, "%Y.%m.%d %H:%M").minute < now.minute):
-                            break
+                            title = list(article.stripped_strings)[0]
+                            href = article.select_one('a')['href']
 
-                        title = list(article.stripped_strings)[0]
-                        href = article.select_one('a')['href']
+                            if(isKeyword(title)) and (not isDup(href)):
+                                newsSet.add(href)
+                                curTxt = title+"\n"+href+"\n"+list(article.stripped_strings)[1]
+                                msgQue.put(curTxt)
+                                # msgQue.append(curTxt)
 
-                        if(isKeyword(title)) and (not isDup(href)):
-                            newsSet.add(href)
-                            curTxt = title+"\n"+href+"\n"+list(article.stripped_strings)[1]
-                            msgQue.put(curTxt)
-                            # msgQue.append(curTxt)
-
-                    # return curList
+                        # return curList
 
         except requests.exceptions.ConnectionError as e:
             print("ConnectionError occurred:", str(e))

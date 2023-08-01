@@ -37,10 +37,9 @@ retrySeconds = 10
     stop=tenacity.stop_after_attempt(100),
 )
 async def sendMsg(msgQue):
-    print("sendMsg :: ")
     while msgQue:
         msg = msgQue.get()
-        print(msg)
+        print(f"sendMsg :: {msg}")
         if msg is None:
             break
     # if len(msgQue) > 0:
@@ -50,8 +49,11 @@ async def sendMsg(msgQue):
             if(sendedCnt < 20):
                 # if msgQue:
                 #     msg = msgQue.pop()
-                bot = await telegram.Bot(token=token)
-                response = bot.send_message(chat_id, msg)
+                print("여기")
+                bot = telegram.Bot(token=token)
+                # print(await bot.get_chat_member_count(chat_id))
+                response = await bot.send_message(chat_id, msg)
+                print(response)
                 if response:
                     sendedCnt += 1
 
@@ -67,7 +69,7 @@ def sendMsgHandler(msgQue):
     asyncio.run(sendMsg(msgQue))
 
 def sendMsgWorker(msgQue):
-    schedule.every(1).seconds.do(sendMsgHandler(msgQue))
+    schedule.every(1).seconds.do(sendMsgHandler,msgQue)
     while True:
         schedule.run_pending()
 
@@ -86,7 +88,7 @@ async def checkMsgQue():
 
 async def getNews(msgQue):
     methodList = [thelecRun(msgQue), theguruRun(msgQue), asiaeRun(msgQue), cbizRun(msgQue), etodayRun(msgQue), fnnewsRun(msgQue), hankyungRun(msgQue), moneysRun(msgQue), newsisRun(msgQue), newsisRun(msgQue), nocutnewsRun(msgQue), sedailyRun(msgQue), thebellRun(msgQue), ynaRun(msgQue), yonhapnewstvRun(msgQue)]
-
+    # methodList = [asiaeRun(msgQue), sedailyRun(msgQue)]
     await asyncio.gather(*methodList)
     # await sendMsgHandler()
 
@@ -101,7 +103,7 @@ def getNewsHandler(msgQue):
     # print(f'time taken: {end - start}')
 
 def getNewsWorker(msgQue):
-    schedule.every(1).seconds.do(getNewsHandler(msgQue))
+    schedule.every(1).seconds.do(getNewsHandler, msgQue)
     while True:
         schedule.run_pending()
 

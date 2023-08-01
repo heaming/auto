@@ -30,7 +30,7 @@ async def yonhapnewstvRun(msgQue):
     async def main():
         if(len(newsSet) > 1000):
             newsSet.clear()
-        print(msgQue.qsize())
+        # print(msgQue.qsize())
         await job()
 
     def isKeyword(title):
@@ -65,7 +65,7 @@ async def yonhapnewstvRun(msgQue):
         options.add_argument("lang=ko_KR") # 한국어!
 
         try:
-            print("------[yonhapnewstv] %s ------" % (time.time() - startTime))
+            # print("------[yonhapnewstv] %s ------" % (time.time() - startTime))
 
             driver = webdriver.Chrome(options=options)
             driver.implicitly_wait(1)
@@ -98,7 +98,7 @@ async def yonhapnewstvRun(msgQue):
                 if(datetime.datetime.strptime(writtenAt, "%Y-%m-%d %H:%M:%S").hour < now.hour):
                     # print(writtenAt)
                     continue
-                if (datetime.datetime.strptime(writtenAt, "%Y-%m-%d %H:%M:%S").hour == now.hour & datetime.datetime.strptime(writtenAt, "%Y-%m-%d %H:%M:%S").minute-2 < now.minute):
+                if (datetime.datetime.strptime(writtenAt, "%Y-%m-%d %H:%M:%S").hour == now.hour & datetime.datetime.strptime(writtenAt, "%Y-%m-%d %H:%M:%S") < datetime.datetime.now() - datetime.timedelta(minutes=1)):
                     # print(writtenAt)
                     continue
 

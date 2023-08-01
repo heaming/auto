@@ -9,7 +9,8 @@ from resources.filterList import newsFilter, newsSet
 import pytz
 import datetime
 import tenacity
-
+import aiohttp
+from resources.sessionInfo import headers
 
 BASE_URL = "https://www.theguru.co.kr/news/article_list_all.html"
 recentSubject = ""
@@ -67,45 +68,44 @@ async def theguruRun(msgQue):
         sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
 
         try:
-            print("------[theguru] %s ------" %(time.time() - startTime))
-            curList = []
+            # print("------[theguru] %s ------" %(time.time() - startTime))
+            # curList = []
+            async with aiohttp.ClientSession(headers=headers) as session:
+                async with session.get(BASE_URL) as res:
+                    if res.status == 200:
+                        resText = await res.text()
+                        soup = BeautifulSoup(resText, 'html.parser')
+                        articles = soup.select(".art_list_all > li")
 
-            with requests.Session() as s:
-                res = s.get(BASE_URL, headers={'User-Agent': 'Mozilla/5.0'})
+                        for article in articles:
+                            if article == recentSubject:
+                                break
+                            else:
+                                recentSubject = article
 
-                if res.status_code == requests.codes.ok:
-                    soup = BeautifulSoup(res.text, 'html.parser')
-                    articles = soup.select(".art_list_all > li")
+                            contents = list(article.stripped_strings)
+                            writtenAt = contents[len(contents)-1]
 
-                    for article in articles:
-                        if article == recentSubject:
-                            break
-                        else:
-                            recentSubject = article
+                            if(datetime.datetime.strptime(writtenAt, "%H:%M:%S").hour < now.hour):
+                                # print(writtenAt)
+                                break
+                            if (datetime.datetime.strptime(writtenAt, "%H:%M:%S").hour == now.hour & datetime.datetime.strptime(writtenAt, "%H:%M:%S") < datetime.datetime.now() - datetime.timedelta(minutes=1)):
+                                # print(writtenAt)
+                                break
 
-                        contents = list(article.stripped_strings)
-                        writtenAt = contents[len(contents)-1]
+                            # print(contents)
+                            title = contents[0]
+                            href = "https://www.theguru.co.kr"+article.select_one('a')['href']
+                            # print(title+" "+href)
 
-                        if(datetime.datetime.strptime(writtenAt, "%H:%M:%S").hour < now.hour):
-                            # print(writtenAt)
-                            break
-                        if (datetime.datetime.strptime(writtenAt, "%H:%M:%S").hour == now.hour & datetime.datetime.strptime(writtenAt, "%H:%M:%S").minute < now.minute):
-                            # print(writtenAt)
-                            break
+                            if(isKeyword(title)) and (not isDup(href)):
+                                newsSet.add(href)
+                                curTxt = title+"\n"+href
+                                # curList.append(curTxt)
+                                msgQue.put(curTxt)
+                                # msgQue.append(curTxt)
 
-                        # print(contents)
-                        title = contents[0]
-                        href = "https://www.theguru.co.kr"+article.select_one('a')['href']
-                        # print(title+" "+href)
-
-                        if(isKeyword(title)) and (not isDup(href)):
-                            newsSet.add(href)
-                            curTxt = title+"\n"+href
-                            # curList.append(curTxt)
-                            msgQue.put(curTxt)
-                            # msgQue.append(curTxt)
-
-                    # return curList
+                        # return curList
 
         except requests.exceptions.ConnectionError as e:
             print("ConnectionError occurred:", str(e))

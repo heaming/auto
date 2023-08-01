@@ -2,7 +2,7 @@ import asyncio
 import time
 import sys
 import io
-
+import aiohttp
 import schedule
 from bs4 import BeautifulSoup
 import requests
@@ -12,7 +12,7 @@ import re
 import certifi
 import datetime
 import tenacity
-
+from resources.sessionInfo import headers
 
 BASE_URL = "https://www.etoday.co.kr/news/flashnews/flash_list"
 recentSubject = ""
@@ -61,37 +61,37 @@ async def etodayRun(msgQue):
 
 
         try:
-            print("------[etoday] %s ------" %(time.time() - startTime))
-            with requests.Session() as s:
-                res = s.get(BASE_URL, headers={'User-Agent': 'Mozilla/5.0'}, verify=certifi.where())
+            # print("------[etoday] %s ------" %(time.time() - startTime))
+            async with aiohttp.ClientSession(headers=headers) as session:
+                async with session.get(BASE_URL) as res:
+                    if res.status == 200:
+                        resText = await res.text(encoding=None)
+                        soup = BeautifulSoup(resText, 'html.parser')
+                        articles = soup.select(".flash_tab_lst > ul > li")
 
-                if res.status_code == requests.codes.ok:
-                    soup = BeautifulSoup(res.text, 'html.parser')
-                    articles = soup.select(".flash_tab_lst > ul > li")
+                        for article in articles:
+                            if article == recentSubject:
+                                break
+                            else:
+                                recentSubject = article
 
-                    for article in articles:
-                        if article == recentSubject:
-                            break
-                        else:
-                            recentSubject = article
+                            contents = list(article.stripped_strings)
+                            title = contents[0]
+                            writtenAt = contents[1]
 
-                        contents = list(article.stripped_strings)
-                        title = contents[0]
-                        writtenAt = contents[1]
+                            if(datetime.datetime.strptime(writtenAt, "%H:%M").hour < now.hour):
+                                break
+                            if(datetime.datetime.strptime(writtenAt, "%H:%M").hour == now.hour & datetime.datetime.strptime(writtenAt, "%H:%M") < datetime.datetime.now() - datetime.timedelta(minutes=1)):
+                                break
 
-                        if(datetime.datetime.strptime(writtenAt, "%H:%M").hour < now.hour):
-                            break
-                        if(datetime.datetime.strptime(writtenAt, "%H:%M").hour == now.hour & datetime.datetime.strptime(writtenAt, "%H:%M").minute < now.minute):
-                            break
+                            href = "https://www.etoday.co.kr/news/view/"+re.sub(r'[^0-9]', '', article.select_one('a')['href'])
+                            # print(title+" "+href)
 
-                        href = "https://www.etoday.co.kr/news/view/"+re.sub(r'[^0-9]', '', article.select_one('a')['href'])
-                        # print(title+" "+href)
-
-                        if(isKeyword(title)) and (not isDup(href)):
-                            newsSet.add(href)
-                            curTxt = title+"\n"+href
-                            msgQue.put(curTxt)
-                            # msgQue.append(curTxt)
+                            if(isKeyword(title)) and (not isDup(href)):
+                                newsSet.add(href)
+                                curTxt = title+"\n"+href
+                                msgQue.put(curTxt)
+                                # msgQue.append(curTxt)
 
         except requests.exceptions.ConnectionError as e:
             print("ConnectionError occurred:", str(e))

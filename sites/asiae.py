@@ -30,10 +30,10 @@ async def asiaeRun(msgQue):
         if(len(newsSet) > 1000):
             newsSet.clear()
         await job()
-        print("asiaeRun %s" %len(newsSet))
+        # print("asiaeRun %s" %len(newsSet))
         # print(textList)
-        print(msgQue)
-        print("===================")
+        # print(msgQue)
+        # print("===================")
 
     def isKeyword(title):
         # print(title)
@@ -67,9 +67,7 @@ async def asiaeRun(msgQue):
         options.add_argument("lang=ko_KR") # 한국어!
 
         try:
-            print("------[asiae] %s ------" %(time.time() - startTime))
-            curList = []
-
+            # print("------[asiae] %s ------" %(time.time() - startTime))
             driver = webdriver.Chrome(options=options)
             driver.implicitly_wait(1)
             driver.get(BASE_URL)
@@ -126,7 +124,6 @@ async def asiaeRun(msgQue):
 
     await main()
 
-# asiaeRun()
 # def mainHandler():
 #     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 #     loop = asyncio.get_event_loop()

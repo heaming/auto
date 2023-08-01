@@ -2,7 +2,7 @@ import asyncio
 import time
 import sys
 import io
-
+import aiohttp
 import schedule
 from bs4 import BeautifulSoup
 import requests
@@ -10,6 +10,7 @@ from resources.filterList import newsFilter, newsSet
 import pytz
 import datetime
 import tenacity
+from resources.sessionInfo import headers
 
 BASE_URL = "https://www.yna.co.kr/news?site=footer_news_latest"
 recentSubject = ""
@@ -55,50 +56,50 @@ async def ynaRun(msgQue):
         sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
 
         try:
-            print("------[yna] %s ------" %(time.time() - startTime))
-            with requests.Session() as s:
-                res = s.get(BASE_URL, headers={'User-Agent': 'Mozilla/5.0'})
+            # print("------[yna] %s ------" %(time.time() - startTime))
+            async with aiohttp.ClientSession(headers=headers) as session:
+                async with session.get(BASE_URL) as res:
+                    if res.status == 200:
+                        resText = await res.text()
+                        soup = BeautifulSoup(resText, 'html.parser')
 
-                if res.status_code == requests.codes.ok:
-                    soup = BeautifulSoup(res.text, 'html.parser')
+                        articles = soup.select(".list > li > div > .news-con")
+                        times = soup.select(".list > li > div > div > .txt-time")
 
-                    articles = soup.select(".list > li > div > .news-con")
-                    times = soup.select(".list > li > div > div > .txt-time")
+                        for i in range(len(articles)):
 
-                    for i in range(len(articles)):
+                            article = articles[i]
+                            # print(article)
+                            writtenAt = list(times[i].stripped_strings)[0]
 
-                        article = articles[i]
-                        # print(article)
-                        writtenAt = list(times[i].stripped_strings)[0]
+                            if article == recentSubject:
+                                break
+                            else:
+                                recentSubject = article
 
-                        if article == recentSubject:
-                            break
-                        else:
-                            recentSubject = article
+                            if(datetime.datetime.strptime(writtenAt, "%m-%d %H:%M").hour < now.hour):
+                                # print(writtenAt)
+                                break
+                            if (datetime.datetime.strptime(writtenAt, "%m-%d %H:%M").hour == now.hour & datetime.datetime.strptime(writtenAt, "%m-%d %H:%M") < datetime.datetime.now() - datetime.timedelta(minutes=1)):
+                                # print(writtenAt)
+                                break
 
-                        if(datetime.datetime.strptime(writtenAt, "%m-%d %H:%M").hour < now.hour):
-                            # print(writtenAt)
-                            break
-                        if (datetime.datetime.strptime(writtenAt, "%m-%d %H:%M").hour == now.hour & datetime.datetime.strptime(writtenAt, "%m-%d %H:%M").minute-2 < now.minute):
-                            # print(writtenAt)
-                            break
+                            contents = list(article.stripped_strings)
+                            title = ""
+                            content = ""
 
-                        contents = list(article.stripped_strings)
-                        title = ""
-                        content = ""
+                            if(len(contents) > 1):
+                                content += "\n"+list(article.stripped_strings)[1]
 
-                        if(len(contents) > 1):
-                            content += "\n"+list(article.stripped_strings)[1]
+                            title += contents[0]
+                            href = "https://"+article.select_one('a')['href'].replace("//", "")
+                            # print(title+" "+href)
 
-                        title += contents[0]
-                        href = "https://"+article.select_one('a')['href'].replace("//", "")
-                        # print(title+" "+href)
-
-                        if(isKeyword(title)) and (not isDup(href)):
-                            newsSet.add(href)
-                            curTxt = title+"\n"+href+content
-                            msgQue.put(curTxt)
-                            # msgQue.append(curTxt)
+                            if(isKeyword(title)) and (not isDup(href)):
+                                newsSet.add(href)
+                                curTxt = title+"\n"+href+content
+                                msgQue.put(curTxt)
+                                # msgQue.append(curTxt)
 
 
         except requests.exceptions.ConnectionError as e:

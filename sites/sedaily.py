@@ -56,7 +56,7 @@ async def sedailyRun(msgQue):
         sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
 
         try:
-            print("------[sedaily] %s ------" %(time.time() - startTime))
+            # print("------[sedaily] %s ------" %(time.time() - startTime))
             async with aiohttp.ClientSession(headers=headers) as session:
                 async with session.get(BASE_URL) as res:
                     if res.status == 200:
@@ -73,18 +73,17 @@ async def sedailyRun(msgQue):
                             contents = list(article.stripped_strings)
                             writtenAt = contents[len(contents)-1]
 
-                            # if(datetime.datetime.strptime(writtenAt, "%m-%d %H:%M").hour < now.hour):
-                            #     # print(writtenAt)
-                            #     break
-                            # if (datetime.datetime.strptime(writtenAt, "%m-%d %H:%M").hour == now.hour & datetime.datetime.strptime(writtenAt, "%m-%d %H:%M").minute < now.minute):
-                            #     # print(writtenAt)
-                            #     break
+                            if(datetime.datetime.strptime(writtenAt, "%m-%d %H:%M").hour < now.hour):
+                                # print(writtenAt)
+                                break
+                            if (datetime.datetime.strptime(writtenAt, "%m-%d %H:%M").hour == now.hour & datetime.datetime.strptime(writtenAt, "%m-%d %H:%M") < datetime.datetime.now() - datetime.timedelta(minutes=1)):
+                                # print(writtenAt)
+                                break
 
                             title = contents[0]
 
                             nId = article.select_one('a')['href'].replace("javascript:NewsView(\'", '').replace("\');", '')
-
-                            href = "https://www.sedaily.com/News/HeadLine/HeadLineViewAjax?Nid="+nId #+"&NClass=AL&Keyword=&HeadLineTime=1"
+                            href = "https://www.sedaily.com/News/HeadLine/HeadLineViewAjax?Nid="+nId+"&NClass=AL&Keyword=&HeadLineTime=1"
                             # print(title+" "+href)
 
                             if(isKeyword(title)) and (not isDup(href)):
