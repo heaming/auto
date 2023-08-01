@@ -6,7 +6,6 @@ newsSet = set()
 # msgQue = Queue()
 newsSet = set()
 newsFilter = [
-    "[",
     "[속보]",
     "증시",
     "[특징주]",
