@@ -33,18 +33,18 @@ global startTime
 global retrySeconds
 global msgQue
 retrySeconds = 10
-
 @tenacity.retry(
     wait=tenacity.wait_fixed(retrySeconds), # wait 파라미터 추가
     stop=tenacity.stop_after_attempt(100),
 )
 async def sendMsg(msgQue):
+    sendedCnt = 0
     while msgQue:
         msg = msgQue.get()
         print(f"sendMsg :: {msg}")
         if msg is None:
             break
-        sendedCnt = 0
+
         try:
             if(sendedCnt < 20):
                 bot = telegram.Bot(token=token)
@@ -53,12 +53,14 @@ async def sendMsg(msgQue):
                 print(response)
                 if response:
                     sendedCnt += 1
-
             else:
                 return
         except telegram.error.RetryAfter as e:
             print(str(e))
             retrySeconds = int(re.sub(r'[^0-9]', '', str(e)))
+
+        except telegram.error.TimedOut as e:
+            print(str(e))
     # else:
     #     return
 
@@ -81,10 +83,10 @@ async def getNews(msgQue):
 
 def getNewsHandler(msgQue):
     """ run at """
-    # now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
-    # if now.hour >= 24 or now.hour <= 6:
-    #     print("잘시간~~")
-    #     return
+    now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
+    if now.hour >= 24 or now.hour <= 6:
+        print("잘시간~~")
+        return
 
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     loop = asyncio.get_event_loop()

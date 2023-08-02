@@ -86,6 +86,12 @@ async def news1Run(msgQue):
                     recentSubject = article
 
                 contents = list(article.stripped_strings)
+                writtenAt = contents[len(contents)-2]
+
+                if(not '초전' in writtenAt and not '1분전' in writtenAt):
+                    print("없음")
+                    break
+                    
                 title = contents[0]
 
                 href = "https://www.news1.kr"+article.select_one('a')['href']
