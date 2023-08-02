@@ -65,7 +65,8 @@ async def thelecRun(msgQue):
                             contents = list(article.stripped_strings)
                             writtenAt = contents[len(contents)-1]
 
-                            if(datetime.datetime.strptime(writtenAt, "| %Y-%m-%d %H:%M") < now - datetime.timedelta(minutes=1)):
+                            if(datetime.datetime.strptime(writtenAt, "| %Y-%m-%d %H:%M").hour < now.hour
+                                    or (datetime.datetime.strptime(writtenAt, "| %Y-%m-%d %H:%M").hour == now.hour and datetime.datetime.strptime(writtenAt, "| %Y-%m-%d %H:%M").minute < (now - datetime.timedelta(minutes=1)).minute)):
                                 break
 
                             title = contents[0]

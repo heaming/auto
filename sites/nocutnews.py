@@ -70,7 +70,8 @@ async def nocutnewsRun(msgQue):
                             temp = contents[len(contents)-1].split(" ")
                             writtenAt = temp[len(temp)-1]
 
-                            if(datetime.datetime.strptime(writtenAt, "%I:%M:%S") < now - datetime.timedelta(minutes=1)):
+                            if(datetime.datetime.strptime(writtenAt, "%I:%M:%S").hour < now.hour
+                                    or (datetime.datetime.strptime(writtenAt, "%I:%M:%S").hour == now.hour and datetime.datetime.strptime(writtenAt, "%I:%M:%S").minute < (now - datetime.timedelta(minutes=1)).minute)):
                                 break
 
                             if(len(contents) > 1):

@@ -71,7 +71,8 @@ async def fnnewsRun(msgQue):
                             else:
                                 writtenAt = contents[2]
 
-                            if(datetime.datetime.strptime(writtenAt, "%Y.%m.%d %H:%M") < now - datetime.timedelta(minutes=1)):
+                            if(datetime.datetime.strptime(writtenAt, "%Y.%m.%d %H:%M").hour < now.hour
+                                    or (datetime.datetime.strptime(writtenAt, "%Y.%m.%d %H:%M").hour == now.hour and datetime.datetime.strptime(writtenAt, "%Y.%m.%d %H:%M").minute < (now - datetime.timedelta(minutes=1)).minute)):
                                 break
 
                             href = "https://www.fnnews.com"+article.select_one('a')['href']

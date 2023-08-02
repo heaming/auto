@@ -69,6 +69,10 @@ async def ynaRun(msgQue):
                             else:
                                 recentSubject = article
 
+                            if(datetime.datetime.strptime(writtenAt, "%m-%d %H:%M").hour < now.hour
+                                    or (datetime.datetime.strptime(writtenAt, "%m-%d %H:%M").hour == now.hour and datetime.datetime.strptime(writtenAt, "%m-%d %H:%M").minute < (now - datetime.timedelta(minutes=1)).minute)):
+                                break
+
                             if (datetime.datetime.strptime(writtenAt, "%m-%d %H:%M") < now - datetime.timedelta(minutes=1)):
                                 break
 

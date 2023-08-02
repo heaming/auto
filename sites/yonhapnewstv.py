@@ -84,7 +84,8 @@ async def yonhapnewstvRun(msgQue):
                 title = ""
                 content = ""
 
-                if (datetime.datetime.strptime(writtenAt, "%Y-%m-%d %H:%M:%S") < now - datetime.timedelta(minutes=1)):
+                if(datetime.datetime.strptime(writtenAt, "%Y-%m-%d %H:%M:%S").hour < now.hour
+                        or (datetime.datetime.strptime(writtenAt, "%Y-%m-%d %H:%M:%S").hour == now.hour and datetime.datetime.strptime(writtenAt, "%Y-%m-%d %H:%M:%S").minute < (now - datetime.timedelta(minutes=1)).minute)):
                     break
 
                 if(len(contents) > 1):

@@ -72,7 +72,8 @@ async def etodayRun(msgQue):
                             """
                             [get time] 
                             """
-                            if(datetime.datetime.strptime(writtenAt, "%H:%M") < now - datetime.timedelta(minutes=1)):
+                            if(datetime.datetime.strptime(writtenAt, "%H:%M").hour < now.hour
+                                    or (datetime.datetime.strptime(writtenAt, "%H:%M").hour == now.hour and datetime.datetime.strptime(writtenAt, "%H:%M").minute < (now - datetime.timedelta(minutes=1)).minute)):
                                 break
 
                             href = "https://www.etoday.co.kr/news/view/"+re.sub(r'[^0-9]', '', article.select_one('a')['href'])

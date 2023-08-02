@@ -64,7 +64,8 @@ async def hankyungRun(msgQue):
                             contents = list(article.stripped_strings)
                             writtenAt = contents[0]
 
-                            if(datetime.datetime.strptime(writtenAt, "%H:%M") < now - datetime.timedelta(minutes=1)):
+                            if(datetime.datetime.strptime(writtenAt, "%H:%M").hour < now.hour
+                                    or (datetime.datetime.strptime(writtenAt, "%H:%M").hour == now.hour and datetime.datetime.strptime(writtenAt, "%H:%M").minute < (now - datetime.timedelta(minutes=1)).minute)):
                                 break
 
                             title = ""

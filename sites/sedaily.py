@@ -66,7 +66,8 @@ async def sedailyRun(msgQue):
                             contents = list(article.stripped_strings)
                             writtenAt = contents[len(contents)-1]
 
-                            if (datetime.datetime.strptime(writtenAt, "%m-%d %H:%M") < now - datetime.timedelta(minutes=1)):
+                            if(datetime.datetime.strptime(writtenAt, "%m-%d %H:%M").hour < now.hour
+                                    or (datetime.datetime.strptime(writtenAt, "%m-%d %H:%M").hour == now.hour and datetime.datetime.strptime(writtenAt, "%m-%d %H:%M").minute < (now - datetime.timedelta(minutes=1)).minute)):
                                 break
 
                             title = contents[0]
@@ -78,6 +79,7 @@ async def sedailyRun(msgQue):
                                 newsSet.add(href)
                                 curTxt = title+"\n"+href
                                 msgQue.put(curTxt)
+
 
         except aiohttp.ClientError as e:
             print("ClientError occurred:", str(e))
