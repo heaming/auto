@@ -2,6 +2,7 @@ import threading
 import re
 import schedule
 import datetime
+from resources.sessionInfo import headers
 from multiprocessing import Process, Value, Pool, Pipe, Queue
 import asyncio
 import telegram
@@ -27,8 +28,9 @@ from sites.nocutnews import nocutnewsRun
 from resources.telegramInfo import token, chat_id, bot
 from resources.filterList import newsFilter, newsSet
 import pytz
+import aiohttp
 
-
+TELEGRAM_URI = f"https://api.telegram.org/bot{token}/sendmessage?chat_id=5915719482&text="
 global startTime
 global retrySeconds
 global msgQue
@@ -39,6 +41,7 @@ retrySeconds = 10
 )
 async def sendMsg(msgQue):
     sendedCnt = 0
+
     while msgQue:
         msg = msgQue.get()
         print(f"sendMsg :: {msg}")
@@ -47,20 +50,31 @@ async def sendMsg(msgQue):
 
         try:
             if(sendedCnt < 20):
-                bot = telegram.Bot(token=token)
+
+                async with aiohttp.ClientSession(headers=headers) as session:
+                    async with session.get(TELEGRAM_URI+msg) as res:
+                        if res.status == 200:
+                            print(res)
+                # bot = telegram.Bot(token=token)
                 # print(await bot.get_chat_member_count(chat_id))
-                response = await bot.send_message(chat_id, msg)
-                print(response)
+                # response = await bot.send_message(chat_id, msg)
+
+
+                # print(response)
                 if response:
                     sendedCnt += 1
             else:
                 return
-        except telegram.error.RetryAfter as e:
-            print(str(e))
-            retrySeconds = int(re.sub(r'[^0-9]', '', str(e)))
-
-        except telegram.error.TimedOut as e:
-            print(str(e))
+        except aiohttp.ClientConnectionError as e:
+            print(e)
+        except Exception as e:
+            print(e)
+        # except telegram.error.RetryAfter as e:
+        #     print(str(e))
+        #     retrySeconds = int(re.sub(r'[^0-9]', '', str(e)))
+        #
+        # except telegram.error.TimedOut as e:
+        #     print(str(e))
     # else:
     #     return
 
